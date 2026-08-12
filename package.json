@@ -1,0 +1,13 @@
+{
+  "name": "restart-blog",
+  "version": "1.0.0",
+  "private": true,
+  "description": "个人博客 · 前端 + Node.js 后端 + SQLite 数据库 · 全栈闭环学习项目",
+  "scripts": {
+    "start": "node --experimental-sqlite server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.13.1"
+  }
+}

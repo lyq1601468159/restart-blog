@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重启日志 · 从躺平到站直</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 背景氛围层：极光光斑 + 噪点 -->
+  <div class="aurora" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="noise"></div>
+  </div>
+
+  <!-- 导航栏 -->
+  <nav class="nav">
+    <a class="logo" onclick="go('home')">RESTART<span class="logo-dot">·</span>LOG</a>
+    <div class="nav-links">
+      <button class="nav-btn active" data-nav="home" onclick="go('home')">首页</button>
+      <button class="nav-btn" data-nav="about" onclick="go('about')">关于</button>
+      <button class="nav-btn" data-nav="admin" onclick="go('admin')">写文章</button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ══════════ 首页 ══════════ -->
+    <section id="view-home" class="view">
+
+      <!-- Hero：左侧大标题，右侧数据 Bento -->
+      <div class="hero">
+        <div class="hero-left">
+          <p class="hero-kicker">2024 – 2026 服役 · 2026.03 退伍 · 汕头</p>
+          <h1 class="hero-title">从躺平<span class="grad-text">到站直</span></h1>
+          <p class="hero-sub">一个退伍兵的编程日记。写代码、写日子、写怎么把自己从床上拉起来。</p>
+          <div class="hero-actions">
+            <a class="btn-primary" href="#posts" onclick="scrollToPosts()">读文章</a>
+            <button class="btn-ghost" onclick="go('admin')">写一篇</button>
+          </div>
+        </div>
+        <div class="hero-bento">
+          <div class="bento-card big">
+            <div class="bento-num" id="stat-posts">—</div>
+            <div class="bento-label">篇文章</div>
+          </div>
+          <div class="bento-card">
+            <div class="bento-num" id="stat-chars">—</div>
+            <div class="bento-label">总字数</div>
+          </div>
+          <div class="bento-card">
+            <div class="bento-num" id="stat-likes">—</div>
+            <div class="bento-label">累计点赞</div>
+          </div>
+          <div class="bento-card">
+            <div class="bento-num" id="stat-views">—</div>
+            <div class="bento-label">总阅读</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文章列表 -->
+      <h2 class="section-title" id="posts">最新文章</h2>
+      <div class="post-grid" id="post-grid">
+        <!-- 加载骨架屏 -->
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      </div>
+      <div class="empty-state" id="empty-state" hidden>
+        <p>还没有文章。</p>
+        <button class="btn-primary" onclick="go('admin')">写第一篇</button>
+      </div>
+
+    </section>
+
+    <!-- ══════════ 文章详情 ══════════ -->
+    <section id="view-detail" class="view" hidden>
+      <button class="back-link" onclick="go('home')">← 返回首页</button>
+      <article class="detail" id="detail-box">
+        <div class="skeleton" style="height:220px"></div>
+      </article>
+    </section>
+
+    <!-- ══════════ 关于 ══════════ -->
+    <section id="view-about" class="view" hidden>
+      <button class="back-link" onclick="go('home')">← 返回首页</button>
+      <article class="about-card glass">
+        <p class="hero-kicker">ABOUT</p>
+        <h1 class="about-title">关于我</h1>
+        <p>大专学历，软件技术专业，有一些编程基础。2024–2026 年服役，义务兵，炊事保障。2026 年 3 月退伍，回到家乡广东汕头。</p>
+        <p>退伍后经历了半年的迷茫期。在家躺到第八个月的时候，开始重新捡起编程。这个博客记录的就是从零开始的全过程：学网页、做项目、投简历、走出门。</p>
+        <p>目前在做的：HTML/CSS → JavaScript → 前端框架 → 做出拿得出手的作品集。长期目标：用代码谋一份体面的职业，或者走学历提升（专升本免试）的路。</p>
+        <p class="quote">这不是一个"技术博客"，这是一个"从躺平到站直"的日志。</p>
+        <p>如果你也是退伍兵、也在迷茫，希望这些字能帮到你——就像当初有人帮了我一样。</p>
+      </article>
+    </section>
+
+    <!-- ══════════ 写文章（管理后台） ══════════ -->
+    <section id="view-admin" class="view" hidden>
+      <button class="back-link" onclick="go('home')">← 返回首页</button>
+      <form class="admin-card glass" id="admin-form" onsubmit="return false;">
+        <p class="hero-kicker">NEW POST</p>
+        <h2 class="admin-title">写一篇新文章</h2>
+
+        <label class="field">
+          <span>标题 *</span>
+          <input type="text" id="f-title" placeholder="比如：我的第一条 API" required>
+        </label>
+
+        <label class="field">
+          <span>标签</span>
+          <input type="text" id="f-tag" placeholder="比如：编程日记">
+        </label>
+
+        <label class="field">
+          <span>日期</span>
+          <input type="text" id="f-date" placeholder="留空则自动填今天">
+        </label>
+
+        <label class="field">
+          <span>摘要（列表页显示）</span>
+          <textarea id="f-excerpt" rows="2" placeholder="留空则自动取正文前 60 字"></textarea>
+        </label>
+
+        <label class="field">
+          <span>正文 *（段落之间空一行）</span>
+          <textarea id="f-content" rows="12" placeholder="从今天开始写……" required></textarea>
+        </label>
+
+        <p class="form-error" id="form-error" hidden></p>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="btn-submit">发布</button>
+          <button type="button" class="btn-ghost" onclick="clearForm()">清空</button>
+        </div>
+        <p class="form-hint">提示：发布接口需要管理员令牌。首次会弹出小窗让你输入，默认 <code>restart2026</code>，输入一次就记住。</p>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="footer">RESTART·LOG — 全栈闭环版 · 前端 + Express + SQLite</footer>
+
+  <!-- 提示条 -->
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- 管理员令牌输入窗 -->
+  <div class="modal-mask" id="token-modal" hidden>
+    <div class="modal glass">
+      <h3>输入管理员令牌</h3>
+      <p class="modal-tip">默认是 <code>restart2026</code>（可在服务端环境变量 ADMIN_TOKEN 修改）</p>
+      <input type="password" id="token-input" placeholder="令牌">
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="saveToken()">确定</button>
+        <button class="btn-ghost" onclick="closeTokenModal()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
