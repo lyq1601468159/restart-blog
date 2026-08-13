@@ -3,3 +3,4 @@ blog.db
 blog.db-journal
 blog.db-wal
 .env
+uploads/

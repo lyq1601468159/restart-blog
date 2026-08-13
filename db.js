@@ -264,7 +264,62 @@ async function deleteComment(id) {
   return r.rowCount > 0;
 }
 
+// 编辑文章
+async function updatePost(id, p) {
+  if (driver === 'sqlite') {
+    const info = db.prepare(
+      'UPDATE posts SET title=?, tag=?, date=?, excerpt=?, content=?, cover=? WHERE id=?'
+    ).run(p.title, p.tag, p.date, p.excerpt, p.content, p.cover, id);
+    return Number(info.changes) > 0;
+  }
+  const r = await db.query(
+    'UPDATE posts SET title=$1, tag=$2, date=$3, excerpt=$4, content=$5, cover=$6 WHERE id=$7',
+    [p.title, p.tag, p.date, p.excerpt, p.content, p.cover, id]
+  );
+  return r.rowCount > 0;
+}
+
+// 热门 TOP（按点赞）
+async function hotPosts(limit) {
+  const sql = 'SELECT id, title, likes, views FROM posts ORDER BY likes DESC, views DESC LIMIT ' + Number(limit || 5);
+  if (driver === 'sqlite') return db.prepare(sql).all();
+  const r = await db.query(sql);
+  return r.rows;
+}
+
+// 月度归档（date 字段形如 2026.08.09，取前 7 位分组）
+async function archive() {
+  const sql = "SELECT substr(date,1,7) AS month, COUNT(*) AS n FROM posts GROUP BY month ORDER BY month DESC";
+  const rows = driver === 'sqlite' ? db.prepare(sql).all() : (await db.query(sql)).rows;
+  return rows.map(r => ({ month: r.month || '未知', n: Number(r.n) }));
+}
+
+// 管理端：每篇文章明细 + 全站评论数
+async function adminStats() {
+  const rows = driver === 'sqlite'
+    ? db.prepare('SELECT id, title, date, likes, views, created_at FROM posts ORDER BY id DESC').all()
+    : (await db.query('SELECT id, title, date, likes, views, created_at FROM posts ORDER BY id DESC')).rows;
+  const totalComments = driver === 'sqlite'
+    ? db.prepare('SELECT COUNT(*) AS n FROM comments').get().n
+    : Number((await db.query('SELECT COUNT(*) AS n FROM comments')).rows[0].n);
+  const totalChars = rows.reduce((s, r) => s + (r.content ? 0 : 0), 0); // 兼容：下面单独算
+  const contentRows = driver === 'sqlite'
+    ? db.prepare('SELECT content FROM posts').all()
+    : (await db.query('SELECT content FROM posts')).rows;
+  const chars = contentRows.reduce((s, r) => s + (r.content || '').length, 0);
+  return { rows, totalComments, totalChars: chars };
+}
+
+// 全站评论（管理用，最新在前）
+async function allComments() {
+  const sql =
+    'SELECT c.id, c.author, c.content, c.created_at, p.title AS post_title FROM comments c LEFT JOIN posts p ON c.post_id = p.id ORDER BY c.id DESC';
+  if (driver === 'sqlite') return db.prepare(sql).all();
+  const r = await db.query(sql);
+  return r.rows;
+}
+
 module.exports = {
-  listPosts, getPost, incrementViews, insertPost, deletePost, incrementLikes, stats,
-  listComments, insertComment, deleteComment
+  listPosts, getPost, incrementViews, insertPost, updatePost, deletePost, incrementLikes, stats,
+  listComments, insertComment, deleteComment, hotPosts, archive, adminStats, allComments
 };

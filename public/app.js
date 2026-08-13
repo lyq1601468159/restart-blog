@@ -1,232 +1,563 @@
 // ═══════════════════════════════════════════════════
-// app.js —— 前端逻辑（数据流：前端 fetch → 后端 API → SQLite）
-// 页面切换 + 文章渲染 + 写文章 + 点赞，全在这里。
+// app.js —— 重启日志 前端逻辑（全功能版）
+// 数据流：前端 fetch → 后端 API → SQLite/Postgres → 渲染
 // ═══════════════════════════════════════════════════
 
-// ── 工具函数：发请求 ──
+// ── 状态 ──
+let POSTS = [];
+let query = '';
+let filterTag = '';
+let sortMode = 'date';   // date | likes | views
+let editId = null;       // 正在编辑的文章 id
+let currentPostId = null;
+
+// ── 工具 ──
 async function api(path, options) {
   const res = await fetch(path, options);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || '请求失败');
   return data;
 }
-
-// ── Toast 提示 ──
 let toastTimer = null;
 function toast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.hidden = false;
+  el.textContent = msg; el.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
 }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function fmtTime(t) { return t ? String(t).slice(0, 16).replace('T', ' ') : ''; }
+
+// ── 主题切换 ──
+function initTheme() {
+  const saved = localStorage.getItem('blog-theme');
+  const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  syncThemeIcons();
+}
+function toggleTheme() {
+  const cur = document.documentElement.dataset.theme;
+  document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('blog-theme', document.documentElement.dataset.theme);
+  syncThemeIcons();
+}
+function syncThemeIcons() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  document.getElementById('icon-moon').hidden = dark;
+  document.getElementById('icon-sun').hidden = !dark;
+}
 
 // ── 页面切换 ──
-function go(view) {
-  ['home', 'about', 'admin', 'detail'].forEach(v => {
+function go(view, tab) {
+  ['home', 'post', 'about', 'admin'].forEach(v => {
     document.getElementById('view-' + v).hidden = v !== view;
   });
   document.querySelectorAll('.nav-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.nav === view || (view === 'detail' && b.dataset.nav === 'home'));
+    b.classList.toggle('active', b.dataset.nav === view || (view === 'post' && b.dataset.nav === 'home'));
   });
+  if (view === 'admin') adminTab(tab || 'write');
+  if (view === 'home' && location.hash) location.hash = '';
   window.scrollTo(0, 0);
 }
-
 function scrollToPosts() {
-  document.getElementById('posts').scrollIntoView({ behavior: 'smooth' });
+  document.querySelector('.toolbar').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ── 首页：统计 + 文章列表 ──
+// ── 搜索 / 筛选 / 排序 ──
+function setQuery(v) { query = v.trim(); renderFeed(); }
+function setFilter(tag) { filterTag = tag; renderSidebar(); renderFeed(); }
+function sortBy(mode) {
+  sortMode = mode;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === mode));
+  renderFeed();
+}
+
+// ── 加载 ──
 async function loadStats() {
   try {
     const s = await api('/api/stats');
-    document.getElementById('stat-posts').textContent = s.postCount;
-    document.getElementById('stat-chars').textContent = s.totalChars;
-    document.getElementById('stat-likes').textContent = s.totalLikes;
-    document.getElementById('stat-views').textContent = s.totalViews;
-  } catch (e) { toast('统计加载失败：' + e.message); }
+    document.getElementById('s-posts').textContent = s.postCount;
+    document.getElementById('s-chars').textContent = s.totalChars;
+    document.getElementById('s-likes').textContent = s.totalLikes;
+    document.getElementById('s-views').textContent = s.totalViews;
+    document.getElementById('side-stats').innerHTML =
+      '<span><b>' + s.postCount + '</b> 篇文章</span>' +
+      '<span><b>' + s.totalChars + '</b> 字</span>' +
+      '<span><b>' + s.totalLikes + '</b> 点赞 · <b>' + s.totalViews + '</b> 阅读</span>';
+  } catch (e) { /* 忽略 */ }
 }
 
 async function loadPosts() {
   try {
     const { posts } = await api('/api/posts');
-    const grid = document.getElementById('post-grid');
-    grid.innerHTML = '';
-
-    if (posts.length === 0) {
-      document.getElementById('empty-state').hidden = false;
-      return;
-    }
-    document.getElementById('empty-state').hidden = true;
-
-    posts.forEach(p => {
-      const card = document.createElement('button');
-      card.className = 'post-card';
-      card.innerHTML =
-        '<div class="post-cover cover-' + p.cover + '">' +
-          '<span class="pill">' + escapeHtml(p.tag || '未分类') + '</span>' +
-        '</div>' +
-        '<div class="post-body">' +
-          '<div class="post-date">' + escapeHtml(p.date) + '</div>' +
-          '<div class="post-title">' + escapeHtml(p.title) + '</div>' +
-          '<div class="post-excerpt">' + escapeHtml(p.excerpt || '') + '</div>' +
-        '</div>' +
-        '<div class="post-meta"><span>♥ ' + p.likes + '</span><span>阅读 ' + p.views + '</span></div>';
-      card.addEventListener('click', () => openPost(p.id));
-      grid.appendChild(card);
-    });
+    POSTS = posts;
+    // 动态填充筛选下拉框
+    const tags = [...new Set(posts.map(p => p.tag).filter(Boolean))];
+    const sel = document.getElementById('filter-select');
+    sel.innerHTML = '<option value="">全部标签</option>' +
+      tags.map(t => '<option' + (t === filterTag ? ' selected' : '') + '>' + escapeHtml(t) + '</option>').join('');
+    renderFeed();
+    renderSidebar();
   } catch (e) {
-    toast('文章加载失败：' + e.message);
+    document.getElementById('post-grid').innerHTML = '';
     document.getElementById('empty-state').hidden = false;
     document.getElementById('empty-state').innerHTML =
       '<p>加载失败：' + escapeHtml(e.message) + '</p><button class="btn-primary" onclick="loadPosts()">重试</button>';
   }
 }
 
-// ── 文章详情 ──
-let currentPostId = null;
+// 搜索高亮
+function highlight(s) {
+  let out = escapeHtml(s);
+  if (query) {
+    const re = new RegExp(escapeRegExp(escapeHtml(query)), 'gi');
+    out = out.replace(re, m => '<mark>' + m + '</mark>');
+  }
+  return out;
+}
 
+// ── 渲染：文章列表 ──
+function renderFeed() {
+  const grid = document.getElementById('post-grid');
+  grid.innerHTML = '';
+  let list = POSTS.filter(p => {
+    if (query && !(p.title + ' ' + (p.excerpt || '')).toLowerCase().includes(query.toLowerCase())) return false;
+    if (filterTag && p.tag !== filterTag) return false;
+    return true;
+  });
+  list = [...list].sort((a, b) =>
+    sortMode === 'likes' ? b.likes - a.likes : sortMode === 'views' ? b.views - a.views : b.id - a.id
+  );
+  document.getElementById('empty-state').hidden = list.length > 0;
+  if (!list.length) return;
+
+  list.forEach((p, i) => {
+    const card = document.createElement('button');
+    card.className = 'post-card';
+    card.style.animationDelay = (i * 60) + 'ms';
+    card.innerHTML =
+      '<div class="post-cover cover-' + p.cover + '"><span class="pill">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
+      '<div class="post-body">' +
+        '<div class="post-date">' + escapeHtml(p.date) + ' · 阅读 ' + p.views + '</div>' +
+        '<div class="post-title">' + highlight(p.title) + '</div>' +
+        '<div class="post-excerpt">' + highlight(p.excerpt || '') + '</div>' +
+        '<div class="post-meta"><span>♥ ' + p.likes + '</span><span>评论 ' + (p.comments || 0) + '</span></div>' +
+      '</div>';
+    card.addEventListener('click', () => openPost(p.id));
+    grid.appendChild(card);
+  });
+}
+
+// ── 渲染：侧边栏 ──
+async function renderSidebar() {
+  // 热门
+  try {
+    const { posts: hot } = await api('/api/hot');
+    document.getElementById('side-hot').innerHTML = hot.length
+      ? hot.map((p, i) =>
+          '<div class="hot-item" onclick="openPost(' + p.id + ')">' +
+            '<span class="hot-rank">' + (i + 1) + '</span>' +
+            '<span class="hot-title">' + escapeHtml(p.title) + '</span>' +
+            '<span class="hot-meta">♥' + p.likes + '</span>' +
+          '</div>').join('')
+      : '<p class="comment-empty">还没有数据</p>';
+  } catch (e) { /* 忽略 */ }
+  // 归档
+  try {
+    const { months } = await api('/api/archive');
+    document.getElementById('side-archive').innerHTML = months.length
+      ? months.map(m =>
+          '<button class="tag-chip" onclick="setFilter(\'' + m.month + '\')">' + escapeHtml(m.month) + '（' + m.n + '）</button>'
+        ).join('')
+      : '<p class="comment-empty">暂无</p>';
+  } catch (e) { /* 忽略 */ }
+  // 标签云
+  const tags = [...new Set(POSTS.map(p => p.tag).filter(Boolean))];
+  document.getElementById('side-tags').innerHTML = tags.map(t =>
+    '<button class="tag-chip' + (t === filterTag ? ' active' : '') + '" onclick="setFilter(\'' + t + '\')">' + escapeHtml(t) + '</button>'
+  ).join('') || '<p class="comment-empty">暂无</p>';
+}
+
+// ── 轻量 Markdown 渲染 ──
+function inlineMd(s) {
+  s = escapeHtml(s);
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
+function mdToHtml(text) {
+  const lines = String(text).split(/\r?\n/);
+  let out = [], i = 0, inCode = false, codeBuf = [], para = [];
+  const flushPara = () => {
+    if (para.length) { out.push('<p>' + para.join('<br>') + '</p>'); para = []; }
+  };
+  while (i < lines.length) {
+    const line = lines[i];
+    const t = line.trim();
+    if (t.startsWith('```')) {
+      flushPara();
+      if (!inCode) { inCode = true; codeBuf = []; }
+      else { out.push('<pre>' + escapeHtml(codeBuf.join('\n')) + '</pre>'); inCode = false; }
+    } else if (inCode) {
+      codeBuf.push(line);
+    } else if (/^#{1,3}\s+/.test(t)) {
+      flushPara();
+      const level = t.match(/^#+/)[0].length;
+      out.push('<h' + (level > 2 ? 3 : 2) + '>' + inlineMd(t.replace(/^#+\s+/, '')) + '</h' + (level > 2 ? 3 : 2) + '>');
+    } else if (/^>\s?/.test(t)) {
+      flushPara();
+      out.push('<blockquote>' + inlineMd(t.replace(/^>\s?/, '')) + '</blockquote>');
+    } else if (/^-\s+/.test(t)) {
+      flushPara();
+      const items = [];
+      while (i < lines.length && /^-\s+/.test(lines[i].trim())) {
+        items.push('<li>' + inlineMd(lines[i].trim().replace(/^-\s+/, '')) + '</li>');
+        i++;
+      }
+      out.push('<ul>' + items.join('') + '</ul>');
+    } else if (/^!\[(.*?)\]\((.+?)\)$/.test(t)) {
+      flushPara();
+      const m = t.match(/^!\[(.*?)\]\((.+?)\)$/);
+      out.push('<img src="' + m[2] + '" alt="' + m[1] + '" loading="lazy">');
+    } else if (t === '') {
+      flushPara();
+    } else {
+      para.push(inlineMd(line));
+    }
+    i++;
+  }
+  flushPara();
+  if (inCode) out.push('<pre>' + escapeHtml(codeBuf.join('\n')) + '</pre>');
+  return out.join('');
+}
+
+// ── 文章详情 ──
 async function openPost(id) {
   currentPostId = id;
-  const box = document.getElementById('detail-box');
-  box.innerHTML = '<div class="skeleton" style="height:260px"></div>';
-  go('detail');
+  const box = document.getElementById('post-box');
+  box.innerHTML = '<div class="skeleton" style="height:320px"></div>';
+  go('post');
+  if (location.hash !== '#post-' + id) location.hash = 'post-' + id;
   try {
     const { post } = await api('/api/posts/' + id);
-    const paras = (post.content || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+    const minutes = Math.max(1, Math.round((post.content || '').length / 400));
+    const isAdmin = !!getToken();
     box.innerHTML =
-      '<article class="detail-card">' +
-        '<div class="detail-meta">' +
+      '<article class="post-article">' +
+        '<div class="post-meta-row">' +
           '<span>' + escapeHtml(post.date) + '</span>' +
           '<span>' + escapeHtml(post.tag || '未分类') + '</span>' +
+          '<span>约 ' + minutes + ' 分钟</span>' +
           '<span>阅读 ' + post.views + '</span>' +
         '</div>' +
-        '<h1 class="detail-title">' + escapeHtml(post.title) + '</h1>' +
-        '<div class="detail-body">' +
-          paras.map(p => '<p>' + escapeHtml(p) + '</p>').join('') +
-        '</div>' +
-        '<div class="like-row">' +
-          '<button class="like-btn" id="like-btn" onclick="likePost(' + post.id + ')">' +
-            '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-10-9.3C.3 8.3 2.4 4.5 6.2 4.5c2.2 0 4.3 1.2 5.8 3.1 1.5-1.9 3.6-3.1 5.8-3.1 3.8 0 5.9 3.8 4.2 7.2C19.5 16.4 12 21 12 21z"/></svg>' +
-            '<span id="like-count">' + post.likes + '</span>' +
+        '<h1 class="post-title-big">' + escapeHtml(post.title) + '</h1>' +
+        '<div class="post-content">' + mdToHtml(post.content) + '</div>' +
+        '<div class="post-footer">' +
+          '<button class="star-btn" id="star-btn" onclick="likePost(' + post.id + ')">' +
+            '<svg viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>' +
+            '<span id="star-count">点赞 ' + post.likes + '</span>' +
           '</button>' +
+          '<button class="tool-btn" onclick="copyLink(' + post.id + ')">复制链接</button>' +
+          (isAdmin
+            ? '<button class="tool-btn" onclick="editPost(' + post.id + ')">编辑</button>' +
+              '<button class="tool-btn" style="color:var(--accent-4)" onclick="deletePost(' + post.id + ')">删除</button>'
+            : '') +
         '</div>' +
         '<div class="comments">' +
           '<h3 class="comments-title">评论 <span class="comments-count" id="comment-count"></span></h3>' +
-          '<div class="comment-list" id="comment-list"><div class="skeleton" style="height:60px"></div></div>' +
+          '<div id="comment-list"><div class="skeleton" style="height:50px"></div></div>' +
           '<div class="comment-form">' +
             '<input id="c-author" placeholder="昵称（可留空，默认匿名）" maxlength="20">' +
             '<textarea id="c-content" rows="3" placeholder="说点什么……（最多 500 字）" maxlength="500"></textarea>' +
-            '<button class="btn-primary" id="c-submit" onclick="submitComment(' + post.id + ')">发表评论</button>' +
+            '<button class="btn-primary" id="c-submit" style="align-self:flex-start" onclick="submitComment(' + post.id + ')">发表评论</button>' +
           '</div>' +
-        '</div>' +
-        '<div class="detail-admin">' +
-          '<button onclick="deletePost(' + post.id + ')">删除这篇文章</button>' +
         '</div>' +
       '</article>';
     loadComments(post.id);
+    loadStats();
   } catch (e) {
-    box.innerHTML = '<p class="empty-state" style="padding:40px 0">文章不存在或加载失败：' + escapeHtml(e.message) + '</p>';
+    box.innerHTML = '<div class="post-article"><p class="empty-state">文章不存在或加载失败：' + escapeHtml(e.message) + '</p></div>';
   }
 }
 
-// ── 点赞：前端 → POST /api/posts/:id/like → 数据库 +1 → 更新数字 ──
 async function likePost(id) {
   try {
     const r = await api('/api/posts/' + id + '/like', { method: 'POST' });
-    document.getElementById('like-count').textContent = r.likes;
-    const btn = document.getElementById('like-btn');
-    btn.classList.add('liked');
-    setTimeout(() => btn.classList.remove('liked'), 400);
+    document.getElementById('star-count').textContent = '点赞 ' + r.likes;
+    const btn = document.getElementById('star-btn');
+    btn.classList.add('starred');
+    setTimeout(() => btn.classList.remove('starred'), 450);
+    loadStats();
   } catch (e) { toast('点赞失败：' + e.message); }
 }
 
-// ── 删文章（需令牌） ──
+function copyLink(id) {
+  const url = location.origin + location.pathname + '#post-' + id;
+  navigator.clipboard.writeText(url).then(
+    () => toast('链接已复制：' + url),
+    () => toast('复制失败，地址是：' + url)
+  );
+}
+
+// ── 评论 ──
+async function loadComments(postId) {
+  const list = document.getElementById('comment-list');
+  if (!list) return;
+  try {
+    const { comments } = await api('/api/posts/' + postId + '/comments');
+    document.getElementById('comment-count').textContent = comments.length ? '(' + comments.length + ')' : '';
+    list.innerHTML = '';
+    if (!comments.length) { list.innerHTML = '<p class="comment-empty">还没有评论，来抢沙发。</p>'; return; }
+    const isAdmin = !!getToken();
+    comments.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'comment-item';
+      item.innerHTML =
+        '<div class="comment-head">' +
+          '<span class="comment-author">' + escapeHtml(c.author || '匿名') + '</span>' +
+          '<span class="comment-time">' + fmtTime(c.created_at) + '</span>' +
+          (isAdmin ? '<button class="comment-del" onclick="deleteComment(' + c.id + ',' + postId + ')">删除</button>' : '') +
+        '</div>' +
+        '<div class="comment-body">' + escapeHtml(c.content) + '</div>';
+      list.appendChild(item);
+    });
+  } catch (e) { list.innerHTML = '<p class="comment-empty">加载失败</p>'; }
+}
+async function submitComment(postId) {
+  const content = document.getElementById('c-content').value.trim();
+  const author = document.getElementById('c-author').value.trim();
+  if (!content) { toast('评论内容不能为空'); return; }
+  const btn = document.getElementById('c-submit');
+  btn.disabled = true; btn.textContent = '发表中…';
+  try {
+    await api('/api/posts/' + postId + '/comments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author, content })
+    });
+    document.getElementById('c-content').value = '';
+    toast('评论已发布');
+    loadComments(postId);
+    loadStats();
+  } catch (e) { toast('发表失败：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '发表评论'; }
+}
+async function deleteComment(commentId, postId) {
+  if (!confirm('删除这条评论？')) return;
+  try {
+    await api('/api/comments/' + commentId, { method: 'DELETE', headers: authHeaders() });
+    toast('评论已删除');
+    loadComments(postId);
+  } catch (e) {
+    if (e.message.includes('令牌')) askToken(() => deleteComment(commentId, postId));
+    else toast('删除失败：' + e.message);
+  }
+}
+
+// ── 文章管理 ──
 async function deletePost(id) {
   if (!confirm('确定删除这篇文章吗？删了就没了。')) return;
   try {
     await api('/api/posts/' + id, { method: 'DELETE', headers: authHeaders() });
     toast('已删除');
     go('home');
-    loadPosts();
-    loadStats();
+    loadPosts(); loadStats();
   } catch (e) {
-    if (e.message.includes('令牌')) { askToken(() => deletePost(id)); }
+    if (e.message.includes('令牌')) askToken(() => deletePost(id));
     else toast('删除失败：' + e.message);
   }
 }
 
-// ── 写文章：前端 → POST /api/posts → 数据库插入 → 回首页刷新 ──
+async function editPost(id) {
+  try {
+    const { post } = await api('/api/posts/' + id);
+    editId = id;
+    document.getElementById('f-id').value = id;
+    document.getElementById('f-title').value = post.title;
+    document.getElementById('f-tag').value = post.tag;
+    document.getElementById('f-date').value = post.date;
+    document.getElementById('f-excerpt').value = post.excerpt || '';
+    document.getElementById('f-content').value = post.content;
+    document.getElementById('f-cover').value = String(post.cover);
+    document.getElementById('btn-submit').textContent = '保存修改';
+    document.getElementById('edit-hint').textContent = '正在编辑：《' + post.title + '》';
+    document.getElementById('form-error').hidden = true;
+    go('admin', 'write');
+    toast('已载入文章，改完点保存');
+  } catch (e) { toast('载入失败：' + e.message); }
+}
+
+function resetForm() {
+  editId = null;
+  document.getElementById('f-id').value = '';
+  ['f-title', 'f-tag', 'f-date', 'f-excerpt', 'f-content'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-cover').value = '0';
+  document.getElementById('btn-submit').textContent = '发布文章';
+  document.getElementById('edit-hint').textContent = '';
+  document.getElementById('form-error').hidden = true;
+  document.getElementById('upload-status').textContent = '';
+}
+
 async function submitPost() {
   const title = document.getElementById('f-title').value.trim();
   const content = document.getElementById('f-content').value.trim();
   const err = document.getElementById('form-error');
-
-  // 表单校验：标题、正文必填
-  if (!title || !content) {
-    err.textContent = '标题和正文不能为空';
-    err.hidden = false;
-    return;
-  }
+  if (!title || !content) { err.textContent = '标题和正文不能为空'; err.hidden = false; return; }
   err.hidden = true;
-
   const btn = document.getElementById('btn-submit');
-  btn.disabled = true;
-  btn.textContent = '发布中…';
-
+  btn.disabled = true; btn.textContent = '保存中…';
   const body = {
     title,
     tag: document.getElementById('f-tag').value.trim(),
     date: document.getElementById('f-date').value.trim(),
     excerpt: document.getElementById('f-excerpt').value.trim(),
-    content
+    content,
+    cover: Number(document.getElementById('f-cover').value)
   };
-
   try {
-    await api('/api/posts', { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
-    toast('发布成功！');
-    clearForm();
-    btn.disabled = false;
-    btn.textContent = '发布';
-    go('home');
-    loadPosts();
-    loadStats();
-  } catch (e) {
-    btn.disabled = false;
-    btn.textContent = '发布';
-    if (e.message.includes('令牌')) {
-      err.textContent = '';
-      askToken(submitPost);   // 没令牌 → 弹窗要令牌 → 拿到后重试
+    if (editId) {
+      await api('/api/posts/' + editId, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+      toast('修改已保存');
     } else {
-      err.textContent = '发布失败：' + e.message;
-      err.hidden = false;
+      await api('/api/posts', { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
+      toast('发布成功！');
     }
+    resetForm();
+    btn.disabled = false; btn.textContent = '发布文章';
+    go('home');
+    loadPosts(); loadStats();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = editId ? '保存修改' : '发布文章';
+    if (e.message.includes('令牌')) askToken(submitPost);
+    else { err.textContent = '保存失败：' + e.message; err.hidden = false; }
   }
 }
 
-function clearForm() {
-  ['f-title', 'f-tag', 'f-date', 'f-excerpt', 'f-content'].forEach(id => {
-    document.getElementById(id).value = '';
+// ── 图片上传 ──
+async function uploadImage(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const st = document.getElementById('upload-status');
+  st.textContent = '上传中…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '上传失败');
+    const ta = document.getElementById('f-content');
+    ta.value += (ta.value ? '\n' : '') + '![图片](' + data.url + ')\n';
+    st.textContent = '已插入图片（可继续编辑）';
+    toast('图片已上传');
+  } catch (e) {
+    st.textContent = '';
+    if (e.message.includes('令牌')) askToken(() => uploadImage(input));
+    else toast('上传失败：' + e.message);
+  } finally { input.value = ''; }
+}
+function insertImageUrl() {
+  const url = prompt('粘贴图片网址（http 开头）');
+  if (!url) return;
+  const ta = document.getElementById('f-content');
+  ta.value += (ta.value ? '\n' : '') + '![图片](' + url + ')\n';
+}
+
+// ── 管理后台各面板 ──
+function adminTab(name) {
+  document.querySelectorAll('.admin-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  ['write', 'manage', 'stats', 'comments'].forEach(p => {
+    document.getElementById('p-' + p).hidden = p !== name;
   });
-  const err = document.getElementById('form-error');
-  err.hidden = true;
+  if (name === 'manage') loadManage();
+  if (name === 'stats') loadStatsPanel();
+  if (name === 'comments') loadCommentsPanel();
 }
 
-// ── 管理员令牌管理（存在浏览器 localStorage） ──
+async function loadManage() {
+  const tbody = document.getElementById('manage-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="comment-empty">加载中…</td></tr>';
+  try {
+    const { posts } = await api('/api/posts');
+    tbody.innerHTML = posts.map(p =>
+      '<tr>' +
+        '<td class="t-title">' + escapeHtml(p.title) + '</td>' +
+        '<td>' + escapeHtml(p.date) + '</td>' +
+        '<td>' + p.views + '</td>' +
+        '<td>' + p.likes + '</td>' +
+        '<td><div class="table-actions">' +
+          '<button class="mini-btn" onclick="editPost(' + p.id + ')">编辑</button>' +
+          '<button class="mini-btn danger" onclick="deletePost(' + p.id + ')">删除</button>' +
+        '</div></td>' +
+      '</tr>').join('');
+  } catch (e) {
+    if (e.message.includes('令牌')) { tbody.innerHTML = '<tr><td colspan="5" class="comment-empty">需要管理员令牌</td></tr>'; askToken(loadManage); }
+    else tbody.innerHTML = '<tr><td colspan="5" class="comment-empty">加载失败：' + escapeHtml(e.message) + '</td></tr>';
+  }
+}
+
+async function loadStatsPanel() {
+  const m = document.getElementById('metrics');
+  const tbody = document.getElementById('stats-tbody');
+  try {
+    const s = await api('/api/admin/stats');
+    m.innerHTML =
+      '<div class="metric-card"><div class="metric-num">' + s.overview.posts + '</div><div class="metric-label">文章</div></div>' +
+      '<div class="metric-card"><div class="metric-num">' + s.overview.chars + '</div><div class="metric-label">总字数</div></div>' +
+      '<div class="metric-card"><div class="metric-num">' + s.overview.views + '</div><div class="metric-label">总阅读</div></div>' +
+      '<div class="metric-card"><div class="metric-num">' + s.overview.likes + '</div><div class="metric-label">总点赞</div></div>' +
+      '<div class="metric-card"><div class="metric-num">' + s.overview.comments + '</div><div class="metric-label">总评论</div></div>';
+    tbody.innerHTML = s.rows.map(r =>
+      '<tr><td class="t-title">' + escapeHtml(r.title) + '</td><td>' + escapeHtml(r.date) + '</td><td>' + r.views + '</td><td>' + r.likes + '</td><td>' + fmtTime(r.created_at) + '</td></tr>'
+    ).join('');
+  } catch (e) {
+    if (e.message.includes('令牌')) askToken(loadStatsPanel);
+    else { m.innerHTML = '<p class="comment-empty">加载失败：' + escapeHtml(e.message) + '</p>'; }
+  }
+}
+
+async function loadCommentsPanel() {
+  const box = document.getElementById('admin-comments');
+  try {
+    const { comments } = await api('/api/comments');
+    box.innerHTML = comments.length
+      ? comments.map(c =>
+          '<div class="comment-item">' +
+            '<div class="comment-head">' +
+              '<span class="comment-author">' + escapeHtml(c.author || '匿名') + '</span>' +
+              '<span class="comment-time">' + fmtTime(c.created_at) + '</span>' +
+              '<span class="comment-time">→ ' + escapeHtml(c.post_title || '已删除文章') + '</span>' +
+              '<button class="comment-del" onclick="deleteCommentAdmin(' + c.id + ')">删除</button>' +
+            '</div>' +
+            '<div class="comment-body">' + escapeHtml(c.content) + '</div>' +
+          '</div>').join('')
+      : '<p class="comment-empty">还没有评论</p>';
+  } catch (e) {
+    if (e.message.includes('令牌')) askToken(loadCommentsPanel);
+    else box.innerHTML = '<p class="comment-empty">加载失败：' + escapeHtml(e.message) + '</p>';
+  }
+}
+async function deleteCommentAdmin(id) {
+  if (!confirm('删除这条评论？')) return;
+  try {
+    await api('/api/comments/' + id, { method: 'DELETE', headers: authHeaders() });
+    toast('已删除');
+    loadCommentsPanel();
+  } catch (e) { toast('删除失败：' + e.message); }
+}
+
+// ── 令牌 ──
 const TOKEN_KEY = 'blog_admin_token';
-
 function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'x-admin-token': getToken() };
-}
-
+function authHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': getToken() }; }
 function askToken(retry) {
   document.getElementById('token-modal').hidden = false;
   document.getElementById('token-input').value = '';
   window.__tokenRetry = retry;
   setTimeout(() => document.getElementById('token-input').focus(), 50);
 }
-
 function saveToken() {
   const v = document.getElementById('token-input').value.trim();
   if (!v) { toast('令牌不能为空'); return; }
@@ -235,97 +566,27 @@ function saveToken() {
   toast('令牌已保存');
   if (typeof window.__tokenRetry === 'function') window.__tokenRetry();
 }
-
 function closeTokenModal() { document.getElementById('token-modal').hidden = true; }
 
-// ── 防 XSS：把用户输入的 < > & 转义，避免内容破坏页面 ──
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
-// ── 评论：列表 / 发表 / 删除 ──
-async function loadComments(postId) {
-  const list = document.getElementById('comment-list');
-  if (!list) return;
-  try {
-    const { comments } = await api('/api/posts/' + postId + '/comments');
-    document.getElementById('comment-count').textContent = comments.length ? '(' + comments.length + ')' : '';
-    list.innerHTML = '';
-
-    if (comments.length === 0) {
-      list.innerHTML = '<p class="comment-empty">还没有评论，来抢沙发。</p>';
-      return;
-    }
-
-    const isAdmin = !!getToken();   // 记住过令牌才显示删除按钮
-    comments.forEach(c => {
-      const item = document.createElement('div');
-      item.className = 'comment-item';
-      item.innerHTML =
-        '<div class="comment-head">' +
-          '<span class="comment-author">' + escapeHtml(c.author || '匿名') + '</span>' +
-          '<span class="comment-time">' + escapeHtml(fmtTime(c.created_at)) + '</span>' +
-          (isAdmin ? '<button class="comment-del" onclick="deleteComment(' + c.id + ',' + postId + ')">删除</button>' : '') +
-        '</div>' +
-        '<div class="comment-body">' + escapeHtml(c.content) + '</div>';
-      list.appendChild(item);
-    });
-  } catch (e) {
-    list.innerHTML = '<p class="comment-empty">评论加载失败：' + escapeHtml(e.message) + '</p>';
-  }
-}
-
-async function submitComment(postId) {
-  const content = document.getElementById('c-content').value.trim();
-  const author = document.getElementById('c-author').value.trim();
-
-  // 前端校验
-  if (!content) { toast('评论内容不能为空'); return; }
-
-  const btn = document.getElementById('c-submit');
-  btn.disabled = true;
-  btn.textContent = '发表中…';
-  try {
-    await api('/api/posts/' + postId + '/comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author, content })
-    });
-    document.getElementById('c-content').value = '';
-    toast('评论已发布');
-    loadComments(postId);
-  } catch (e) {
-    toast('发表失败：' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '发表评论';
-  }
-}
-
-async function deleteComment(commentId, postId) {
-  if (!confirm('删除这条评论？')) return;
-  try {
-    await api('/api/comments/' + commentId, { method: 'DELETE', headers: authHeaders() });
-    toast('评论已删除');
-    loadComments(postId);
-  } catch (e) {
-    if (e.message.includes('令牌')) { askToken(() => deleteComment(commentId, postId)); }
-    else toast('删除失败：' + e.message);
-  }
-}
-
-// 时间格式化：数据库给的是 "2026-08-12 22:41:00" 或 ISO 格式，统一取前 16 位
-function fmtTime(t) {
-  if (!t) return '';
-  return String(t).slice(0, 16).replace('T', ' ');
+// ── 滚动：进度条 + 回到顶部 ──
+function onScroll() {
+  const doc = document.documentElement;
+  const pct = doc.scrollTop / (doc.scrollHeight - doc.clientHeight || 1);
+  document.getElementById('progress-bar').style.width = (pct * 100) + '%';
+  document.getElementById('back-top').classList.toggle('show', doc.scrollTop > 400);
 }
 
 // ── 启动 ──
-document.getElementById('admin-form').addEventListener('submit', e => {
-  e.preventDefault();
-  submitPost();
+window.addEventListener('scroll', onScroll, { passive: true });
+document.getElementById('admin-form').addEventListener('submit', e => { e.preventDefault(); submitPost(); });
+window.addEventListener('hashchange', () => {
+  const m = location.hash.match(/^#post-(\d+)$/);
+  if (m && Number(m[1]) !== currentPostId) openPost(Number(m[1]));
 });
+initTheme();
 loadStats();
 loadPosts();
+if (/^#post-/.test(location.hash)) {
+  const m = location.hash.match(/^#post-(\d+)$/);
+  if (m) openPost(Number(m[1]));
+}

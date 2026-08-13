@@ -6,10 +6,32 @@
 // ═══════════════════════════════════════════════════
 
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// 图片上传目录
+const UPLOAD_DIR = path.join(__dirname, 'uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => {
+      // 随机文件名 + 原扩展名（防重名、防路径注入）
+      const ext = (path.extname(file.originalname) || '.png').toLowerCase().replace(/[^.a-z0-9]/g, '');
+      cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
+    }
+  }),
+  limits: { fileSize: 8 * 1024 * 1024 },  // 单张最大 8MB
+  fileFilter: (req, file, cb) => {
+    if (/^image\//.test(file.mimetype)) cb(null, true);
+    else cb(new Error('只能上传图片文件'));
+  }
+});
 
 // 管理员令牌：发文章/删文章/删评论时需要。
 // 本地默认 restart2026；部署时用平台的环境变量覆盖。
@@ -95,6 +117,88 @@ app.delete('/api/comments/:id', requireAdmin, async (req, res) => {
   if (!ok) return res.status(404).json({ error: '评论不存在' });
   res.json({ ok: true });
 });
+
+// ── 编辑文章（需令牌）──
+app.put('/api/posts/:id', requireAdmin, async (req, res) => {
+  const post = await db.getPost(req.params.id);
+  if (!post) return res.status(404).json({ error: '文章不存在' });
+  const { title, tag, date, excerpt, content, cover } = req.body || {};
+  if (!title || !title.trim() || !content || !content.trim()) {
+    return res.status(400).json({ error: '标题和正文不能为空' });
+  }
+  const ok = await db.updatePost(req.params.id, {
+    title: title.trim(),
+    tag: (tag || '').trim(),
+    date: (date || post.date || new Date().toISOString().slice(0, 10)).trim(),
+    excerpt: (excerpt || content.trim().slice(0, 60)).trim(),
+    content: content.trim(),
+    cover: cover === undefined ? post.cover : Number(cover)
+  });
+  if (!ok) return res.status(404).json({ error: '文章不存在' });
+  res.json({ ok: true });
+});
+
+// ── 图片上传（需令牌）──
+app.post('/api/upload', requireAdmin, upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '没有收到文件' });
+  res.json({ ok: true, url: '/uploads/' + req.file.filename });
+});
+
+// ── 热门 TOP ──
+app.get('/api/hot', async (req, res) => {
+  res.json({ posts: await db.hotPosts(5) });
+});
+
+// ── 月度归档 ──
+app.get('/api/archive', async (req, res) => {
+  res.json({ months: await db.archive() });
+});
+
+// ── 管理端统计（需令牌）──
+app.get('/api/admin/stats', requireAdmin, async (req, res) => {
+  const s = await db.adminStats();
+  res.json({
+    overview: {
+      posts: s.rows.length,
+      likes: s.rows.reduce((x, r) => x + Number(r.likes), 0),
+      views: s.rows.reduce((x, r) => x + Number(r.views), 0),
+      comments: s.totalComments,
+      chars: s.totalChars
+    },
+    rows: s.rows
+  });
+});
+
+// ── 全站评论（需令牌）──
+app.get('/api/comments', requireAdmin, async (req, res) => {
+  res.json({ comments: await db.allComments() });
+});
+
+// ── RSS 订阅（公开）──
+app.get('/feed.xml', async (req, res) => {
+  const posts = await db.listPosts();
+  const escape = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const items = posts.map(p =>
+    '  <item>\n' +
+    '    <title>' + escape(p.title) + '</title>\n' +
+    '    <link>http://localhost:' + PORT + '/#/post/' + p.id + '</link>\n' +
+    '    <guid>post-' + p.id + '</guid>\n' +
+    '    <pubDate>' + escape(p.date) + '</pubDate>\n' +
+    '    <description>' + escape(p.excerpt || '') + '</description>\n' +
+    '  </item>\n'
+  ).join('');
+  res.type('application/rss+xml').send(
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<rss version="2.0"><channel>\n' +
+    '  <title>重启日志</title>\n' +
+    '  <description>从躺平到站直：一个退伍兵的编程日记</description>\n' +
+    items +
+    '</channel></rss>'
+  );
+});
+
+// ── 上传文件静态访问 ──
+app.use('/uploads', express.static('uploads'));
 
 // ── 统计 ──
 app.get('/api/stats', async (req, res) => {
