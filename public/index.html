@@ -18,7 +18,10 @@
   <!-- 顶栏 -->
   <header class="topbar">
     <div class="tb-inner">
-      <button class="logo" onclick="go('home')">重启<span class="logo-accent">日志</span></button>
+      <button class="tb-brand" onclick="go('home')">
+        <span class="logo-box" aria-hidden="true">R</span>
+        <span class="logo-text">重启<span class="logo-accent">日志</span></span>
+      </button>
       <nav class="tb-nav">
         <button class="nav-btn active" data-nav="home" onclick="go('home')">首页</button>
         <button class="nav-btn" data-nav="about" onclick="go('about')">关于</button>
@@ -47,7 +50,7 @@
         <div class="hero-deco" aria-hidden="true"></div>
         <div class="hero-left">
           <p class="kicker">A VETERAN'S CODING DIARY · 2026</p>
-          <h1 class="hero-title">从躺平<span class="grad-text">到站直</span></h1>
+          <h1 class="hero-title">从躺平<span class="grad-flow">到站直</span></h1>
           <p class="hero-sub" id="hero-sub">一个退伍兵的编程日记。写代码、写日子、写怎么把自己从床上拉起来。数据全部存进数据库，功能全部闭环。</p>
           <div class="hero-actions">
             <button class="btn-primary" onclick="scrollToPosts()">读文章</button>
