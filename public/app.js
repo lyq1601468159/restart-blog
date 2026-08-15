@@ -487,6 +487,7 @@ async function loadSettings() {
     if (g('set-tagline')) g('set-tagline').value = s.site_tagline;
     if (g('set-accent')) g('set-accent').value = s.site_accent;
     if (g('set-footer')) g('set-footer').value = s.site_footer;
+    if (g('set-notice')) g('set-notice').value = s.site_notice || '';
   } catch (e) { /* 忽略 */ }
 }
 async function saveSettings() {
@@ -494,7 +495,8 @@ async function saveSettings() {
     site_name: document.getElementById('set-name').value.trim() || '重启日志',
     site_tagline: document.getElementById('set-tagline').value.trim(),
     site_accent: document.getElementById('set-accent').value,
-    site_footer: document.getElementById('set-footer').value.trim()
+    site_footer: document.getElementById('set-footer').value.trim(),
+    site_notice: document.getElementById('set-notice').value.trim()
   };
   try {
     const s = await api('/api/settings', { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) });
