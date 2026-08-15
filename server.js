@@ -227,6 +227,30 @@ app.get('/api/posts/:id/related', async (req, res) => {
   res.json({ posts });
 });
 
+// ── 站点设置 ──
+app.get('/api/settings', async (req, res) => {
+  res.json(await db.getSettings());
+});
+
+app.put('/api/settings', requireAdmin, async (req, res) => {
+  await db.setSettings(req.body || {});
+  res.json(await db.getSettings());
+});
+
+// ── 站点地图（SEO）──
+app.get('/sitemap.xml', async (req, res) => {
+  const posts = await db.listPosts();
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const base = 'https://' + (req.headers.host || 'localhost');
+  const urls = [
+    '  <url><loc>' + base + '/</loc></url>',
+    ...posts.map(p => '  <url><loc>' + base + '/#post-' + p.id + '</loc></url>')
+  ].join('\n');
+  res.type('application/xml').send(
+    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + '\n</urlset>'
+  );
+});
+
 // ── 统计 ──
 app.get('/api/stats', async (req, res) => {
   res.json(await db.stats());

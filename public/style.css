@@ -274,11 +274,29 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
   font-family: Georgia, "Noto Serif SC", serif; margin: 26px 0 12px; line-height:1.4;
 }
 .post-content h2 { font-size: 22px; } .post-content h3 { font-size: 18px; }
-.post-content img { max-width:100%; border-radius: 12px; border:1px solid var(--stroke); display:block; margin: 20px auto; }
+.post-content img { max-width:100%; border-radius: 12px; border:1px solid var(--stroke); display:block; margin: 20px auto; cursor: zoom-in; }
 .post-content pre {
   background: var(--bg-soft); border:1px solid var(--stroke); border-radius: 12px;
-  padding: 16px 18px; overflow-x:auto; font-size: 13px; line-height:1.6; margin: 18px 0;
+  padding: 16px 18px; overflow-x:auto; font-size: 13px; line-height:1.6; margin: 0;
 }
+/* 代码块 + 复制按钮 */
+.code-wrap { position: relative; margin: 18px 0; }
+.code-copy {
+  position: absolute; top: 8px; right: 8px;
+  font-size: 11px; color: var(--muted); cursor: pointer;
+  background: var(--card); border: 1px solid var(--stroke); border-radius: 6px;
+  padding: 3px 10px; opacity: .85;
+}
+.code-copy:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
+/* 图片灯箱 */
+.lightbox {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,.88);
+  display: flex; align-items: center; justify-content: center;
+  cursor: zoom-out;
+}
+.lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.lightbox .lb-cap { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; color: #d4d4d8; font-size: 13px; }
 .post-content blockquote {
   border-left: 3px solid var(--accent); margin: 18px 0;
   padding: 6px 0 6px 18px; color: var(--muted); font-style: italic;

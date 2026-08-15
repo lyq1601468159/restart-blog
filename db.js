@@ -45,7 +45,10 @@ const SCHEMA = {
         author TEXT DEFAULT '匿名',
         content TEXT NOT NULL,
         created_at TEXT DEFAULT (datetime('now','localtime'))
-      )`
+      )`,
+  settings: isPg
+    ? `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT DEFAULT '')`
+    : `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT DEFAULT '')`
 };
 
 // ── 种子文章（首次启动且库为空时写入）──
@@ -135,9 +138,11 @@ if (isPg) {
 if (driver === 'sqlite') {
   db.exec(SCHEMA.posts);
   db.exec(SCHEMA.comments);
+  db.exec(SCHEMA.settings);
 } else {
   db.query(SCHEMA.posts);
   db.query(SCHEMA.comments);
+  db.query(SCHEMA.settings);
 }
 
 // ── 旧库升级：给已有 posts 表补 cover_url 字段（已存在则跳过）──
@@ -377,8 +382,41 @@ async function neighbors(id) {
   return { prev, next };
 }
 
+// ═══════════════════════════════════════════════════
+// 站点设置（博客名/标语/主题色/页脚）
+// ═══════════════════════════════════════════════════
+const SETTINGS_DEFAULTS = {
+  site_name: '重启日志',
+  site_tagline: '从躺平到站直：一个退伍兵的编程日记。',
+  site_accent: '#0d9488',
+  site_footer: 'RESTART·LOG — 从躺平到站直 · 前端 + Express + SQLite/Postgres 全栈闭环'
+};
+
+async function getSettings() {
+  const rows = driver === 'sqlite'
+    ? db.prepare('SELECT key, value FROM settings').all()
+    : (await db.query('SELECT key, value FROM settings')).rows;
+  const out = { ...SETTINGS_DEFAULTS };
+  rows.forEach(r => { out[r.key] = r.value; });
+  return out;
+}
+
+async function setSettings(obj) {
+  for (const [k, v] of Object.entries(obj)) {
+    if (!(k in SETTINGS_DEFAULTS)) continue;
+    if (driver === 'sqlite') {
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(k, String(v));
+    } else {
+      await db.query(
+        'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+        [k, String(v)]
+      );
+    }
+  }
+}
+
 module.exports = {
   listPosts, getPost, incrementViews, insertPost, updatePost, deletePost, incrementLikes, stats,
   listComments, insertComment, deleteComment, hotPosts, archive, adminStats, allComments, ping,
-  relatedPosts, neighbors
+  relatedPosts, neighbors, getSettings, setSettings
 };

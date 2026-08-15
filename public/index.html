@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>重启日志 · 从躺平到站直</title>
+  <meta name="description" content="从躺平到站直：一个退伍兵的编程日记。写代码、写日子、写怎么把自己从床上拉起来。">
+  <meta property="og:title" content="重启日志">
+  <meta property="og:description" content="从躺平到站直：一个退伍兵的编程日记。">
+  <meta property="og:type" content="website">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -39,7 +43,7 @@
         <div class="hero-left">
           <p class="kicker">A VETERAN'S CODING DIARY · 2026</p>
           <h1 class="hero-title">从躺平<span class="grad-text">到站直</span></h1>
-          <p class="hero-sub">一个退伍兵的编程日记。写代码、写日子、写怎么把自己从床上拉起来。数据全部存进数据库，功能全部闭环。</p>
+          <p class="hero-sub" id="hero-sub">一个退伍兵的编程日记。写代码、写日子、写怎么把自己从床上拉起来。数据全部存进数据库，功能全部闭环。</p>
           <div class="hero-actions">
             <button class="btn-primary" onclick="scrollToPosts()">读文章</button>
             <button class="btn-ghost" onclick="go('admin', 'write')">写一篇</button>
@@ -140,6 +144,7 @@
           <button class="admin-tab" data-tab="manage" onclick="adminTab('manage')">文章管理</button>
           <button class="admin-tab" data-tab="stats" onclick="adminTab('stats')">数据看板</button>
           <button class="admin-tab" data-tab="comments" onclick="adminTab('comments')">评论管理</button>
+          <button class="admin-tab" data-tab="settings" onclick="adminTab('settings')">站点设置</button>
         </div>
       </div>
 
@@ -204,11 +209,24 @@
       <div class="admin-panel panel" id="p-comments" hidden>
         <div id="admin-comments"></div>
       </div>
+      <!-- 站点设置 -->
+      <div class="admin-panel panel" id="p-settings" hidden>
+        <h3 class="detail-title" style="font-size:18px">站点设置</h3>
+        <p class="form-hint" style="margin-bottom:16px">保存后全站立即生效，数据存入数据库。</p>
+        <label class="field"><span>博客名称（浏览器标签页标题）</span><input type="text" id="set-name" maxlength="30"></label>
+        <label class="field"><span>标语（首页大标题下方）</span><input type="text" id="set-tagline" maxlength="60"></label>
+        <label class="field"><span>主题色（全站主色）</span><input type="color" id="set-accent" style="width:90px;height:40px;padding:2px"></label>
+        <label class="field"><span>页脚文字</span><input type="text" id="set-footer" maxlength="80"></label>
+        <div class="form-actions">
+          <button class="btn-primary" onclick="saveSettings()">保存设置</button>
+          <button class="btn-ghost" onclick="loadSettings()">恢复当前值</button>
+        </div>
+      </div>
     </section>
   </main>
 
   <footer class="footer">
-    <p>RESTART·LOG — 从躺平到站直 · 前端 + Express + SQLite/Postgres 全栈闭环</p>
+    <p id="footer-text">RESTART·LOG — 从躺平到站直 · 前端 + Express + SQLite/Postgres 全栈闭环</p>
     <p class="footer-sub">手写的每一行代码，都是把自己重新焊回生活里的铆钉。</p>
   </footer>
 

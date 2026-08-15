@@ -203,7 +203,7 @@ function mdToHtml(text) {
     if (t.startsWith('```')) {
       flushPara();
       if (!inCode) { inCode = true; codeBuf = []; }
-      else { out.push('<pre>' + escapeHtml(codeBuf.join('\n')) + '</pre>'); inCode = false; }
+      else { out.push('<div class="code-wrap"><button class="code-copy" onclick="copyCode(this)">复制</button><pre>' + escapeHtml(codeBuf.join('\n')) + '</pre></div>'); inCode = false; }
     } else if (inCode) {
       codeBuf.push(line);
     } else if (/^#{1,3}\s+/.test(t)) {
@@ -237,7 +237,7 @@ function mdToHtml(text) {
     i++;
   }
   flushPara();
-  if (inCode) out.push('<pre>' + escapeHtml(codeBuf.join('\n')) + '</pre>');
+  if (inCode) out.push('<div class="code-wrap"><button class="code-copy" onclick="copyCode(this)">复制</button><pre>' + escapeHtml(codeBuf.join('\n')) + '</pre></div>');
   return out.join('');
 }
 
@@ -269,6 +269,8 @@ async function openPost(id) {
             '<span id="star-count">点赞 ' + post.likes + '</span>' +
           '</button>' +
           '<button class="tool-btn" onclick="copyLink(' + post.id + ')">复制链接</button>' +
+          '<button class="tool-btn" onclick="fontSize(-1)" title="减小字号">A−</button>' +
+          '<button class="tool-btn" onclick="fontSize(1)" title="增大字号">A+</button>' +
           (isAdmin
             ? '<button class="tool-btn" onclick="editPost(' + post.id + ')">编辑</button>' +
               '<button class="tool-btn" style="color:var(--accent-4)" onclick="deletePost(' + post.id + ')">删除</button>'
@@ -288,6 +290,10 @@ async function openPost(id) {
     buildToc();
     loadNeighbors(post.id);
     loadRelated(post.id);
+    bindLightbox();
+    updateSEO(post);
+    const fs = parseFloat(localStorage.getItem('blog-fontsize'));
+    if (fs) box.querySelector('.post-content').style.fontSize = fs + 'px';
     loadStats();
   } catch (e) {
     box.innerHTML = '<div class="post-article"><p class="empty-state">文章不存在或加载失败：' + escapeHtml(e.message) + '</p></div>';
@@ -365,6 +371,79 @@ async function loadRelated(id) {
         '</button>').join('') +
       '</div></div>');
   } catch (e) { /* 忽略 */ }
+}
+
+// ── 阅读细节：灯箱 / 复制代码 / 字号 ──
+function bindLightbox() {
+  document.querySelectorAll('#post-box .post-content img').forEach(img => {
+    img.addEventListener('click', () => showLightbox(img.src, img.alt));
+  });
+}
+function showLightbox(src, alt) {
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.innerHTML = '<img src="' + src + '" alt="' + escapeHtml(alt || '') + '">' +
+    (alt ? '<div class="lb-cap">' + escapeHtml(alt) + '</div>' : '');
+  lb.addEventListener('click', () => lb.remove());
+  document.body.appendChild(lb);
+}
+function copyCode(btn) {
+  const pre = btn.parentElement.querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = '已复制';
+    setTimeout(() => { btn.textContent = '复制'; }, 1500);
+  }, () => toast('复制失败，请手动选择复制'));
+}
+function fontSize(d) {
+  const el = document.querySelector('.post-content');
+  if (!el) return;
+  const cur = parseFloat(el.style.fontSize) || 15.5;
+  const next = Math.min(18, Math.max(13.5, cur + d));
+  el.style.fontSize = next + 'px';
+  localStorage.setItem('blog-fontsize', String(next));
+}
+
+// ── 站点设置 ──
+function applySettings(s) {
+  window.__siteName = s.site_name;
+  document.title = s.site_name + ' · ' + s.site_tagline;
+  const sub = document.getElementById('hero-sub');
+  if (sub) sub.textContent = s.site_tagline;
+  const ft = document.getElementById('footer-text');
+  if (ft) ft.textContent = s.site_footer;
+  document.documentElement.style.setProperty('--accent', s.site_accent);
+}
+async function loadSettings() {
+  try {
+    const s = await api('/api/settings');
+    applySettings(s);
+    const g = id => document.getElementById(id);
+    if (g('set-name')) g('set-name').value = s.site_name;
+    if (g('set-tagline')) g('set-tagline').value = s.site_tagline;
+    if (g('set-accent')) g('set-accent').value = s.site_accent;
+    if (g('set-footer')) g('set-footer').value = s.site_footer;
+  } catch (e) { /* 忽略 */ }
+}
+async function saveSettings() {
+  const body = {
+    site_name: document.getElementById('set-name').value.trim() || '重启日志',
+    site_tagline: document.getElementById('set-tagline').value.trim(),
+    site_accent: document.getElementById('set-accent').value,
+    site_footer: document.getElementById('set-footer').value.trim()
+  };
+  try {
+    const s = await api('/api/settings', { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+    applySettings(s);
+    toast('设置已保存，全站生效');
+  } catch (e) { toast('保存失败：' + e.message); }
+}
+
+// ── SEO：分享卡片 ──
+function updateSEO(post) {
+  document.title = post.title + ' · ' + (window.__siteName || '重启日志');
+  document.querySelector('meta[name="description"]').setAttribute('content', post.excerpt || '');
+  document.querySelector('meta[property="og:title"]').setAttribute('content', post.title);
+  document.querySelector('meta[property="og:description"]').setAttribute('content', post.excerpt || '');
 }
 
 // ── 评论 ──
@@ -534,12 +613,13 @@ function insertImageUrl() {
 // ── 管理后台各面板 ──
 function adminTab(name) {
   document.querySelectorAll('.admin-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  ['write', 'manage', 'stats', 'comments'].forEach(p => {
+  ['write', 'manage', 'stats', 'comments', 'settings'].forEach(p => {
     document.getElementById('p-' + p).hidden = p !== name;
   });
   if (name === 'manage') loadManage();
   if (name === 'stats') loadStatsPanel();
   if (name === 'comments') loadCommentsPanel();
+  if (name === 'settings') loadSettings();
 }
 
 async function loadManage() {
@@ -660,6 +740,7 @@ window.addEventListener('hashchange', () => {
   if (m && Number(m[1]) !== currentPostId) openPost(Number(m[1]));
 });
 initTheme();
+loadSettings();
 loadStats();
 loadPosts();
 if (/^#post-/.test(location.hash)) {
