@@ -34,13 +34,23 @@ const upload = multer({
 });
 
 // 管理员令牌：发文章/删文章/删评论时需要。
-// 本地默认 restart2026；部署时用平台的环境变量覆盖。
+// 当前默认关闭验证（DISABLE_AUTH=1），先不设防；想重新开启：
+// 把 .env 里的 DISABLE_AUTH 改成 0（或删掉），并设好 ADMIN_TOKEN。
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'restart2026';
+const AUTH_DISABLED = process.env.DISABLE_AUTH === '1';
+
+if (AUTH_DISABLED) console.log('[server] 注意：令牌验证已关闭，管理接口当前不设防');
 
 app.use(express.json());
 app.use(express.static('public'));
 
+// 防崩：未捕获的 Promise 错误只记日志，不让服务退出（家里跑的博客，重启一次代价太大）
+process.on('unhandledRejection', e => {
+  console.error('[server] 未处理错误：', e && e.message);
+});
+
 function requireAdmin(req, res, next) {
+  if (AUTH_DISABLED) return next();
   if (req.headers['x-admin-token'] === ADMIN_TOKEN) return next();
   res.status(401).json({ error: '令牌不对，无权操作' });
 }
@@ -204,6 +214,9 @@ app.use('/uploads', express.static('uploads'));
 app.get('/api/stats', async (req, res) => {
   res.json(await db.stats());
 });
+
+// 心跳保活：每 60 秒 ping 一次云数据库，防止它休眠导致接口挂起
+setInterval(() => db.ping(), 60000);
 
 app.listen(PORT, () => {
   console.log(`[server] 博客已启动： http://localhost:${PORT}`);

@@ -1,20 +1,24 @@
 @echo off
 rem ═════════════════════════════════════════════════
-rem 一键上线公网：启动博客 + 打开 Cloudflare 隧道
-rem 双击运行后，等待几秒，
-rem 看窗口里 "https://xxx.trycloudflare.com" 那行 = 你的公网网址
-rem 关掉这个窗口 = 网站下线
+rem 一键上线公网（花生壳版）
+rem 1. 双击运行：启动博客服务（后台小窗）
+rem 2. 确认花生壳客户端保持打开（它负责公网映射）
+rem 3. 固定网址：https://6rn286kq9554.vicp.fun
+rem 关掉本窗口 = 博客服务停止 = 网站下线
 rem ═════════════════════════════════════════════════
 cd /d %~dp0
 
-rem 1. 启动博客（后台小窗）
+echo 正在启动博客服务...
 start /min cmd /c "node start.js"
 timeout /t 3 >nul
 
-rem 2. 打开隧道（这个窗口会显示网址）
-echo 正在连接公网隧道，请稍等几秒...
-"%USERPROFILE%\cloudflared.exe" tunnel --url http://localhost:3000
-
 echo.
-echo 隧道已关闭，网站已下线。
+echo ══════════════════════════════════════════════
+echo   你的博客已上线（固定网址）：
+echo   https://6rn286kq9554.vicp.fun
+echo ══════════════════════════════════════════════
+echo.
+echo 注意：花生壳客户端必须保持打开，网站才在线。
+echo 关闭本窗口 = 网站下线。
+echo.
 pause

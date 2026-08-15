@@ -104,8 +104,22 @@ let db;       // 底层连接对象
 
 if (isPg) {
   const { Client } = require('pg');
-  db = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  db = new Client({
+    connectionString: DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    keepAlive: true,                       // 保持 TCP 连接活跃
+    connectionTimeoutMillis: 15000,        // 连不上 15 秒内报错，不无限等待
+    query_timeout: 20000,                  // 单条查询 20 秒超时，防挂死
+    statement_timeout: 20000
+  });
   db.connect();
+  // 防崩 + 自动重连：连接异常时记日志，5 秒后自动重连（云数据库休眠唤醒时会断连）
+  db.on('error', e => {
+    console.error('[db] Postgres 连接异常：', e.message);
+    setTimeout(() => {
+      db.connect().then(() => console.log('[db] 已自动重连')).catch(err => console.error('[db] 重连失败：', err.message));
+    }, 5000);
+  });
   driver = 'pg';
   console.log('[db] 使用云端 Postgres');
 } else {
@@ -319,7 +333,13 @@ async function allComments() {
   return r.rows;
 }
 
+// 心跳：每 60 秒 ping 一次数据库（防止云数据库休眠，也让服务及时发现连接断开）
+async function ping() {
+  if (driver === 'sqlite') return;
+  try { await db.query('SELECT 1'); } catch (e) { console.error('[db] 心跳失败：', e.message); }
+}
+
 module.exports = {
   listPosts, getPost, incrementViews, insertPost, updatePost, deletePost, incrementLikes, stats,
-  listComments, insertComment, deleteComment, hotPosts, archive, adminStats, allComments
+  listComments, insertComment, deleteComment, hotPosts, archive, adminStats, allComments, ping
 };

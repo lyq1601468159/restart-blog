@@ -245,7 +245,7 @@ async function openPost(id) {
   try {
     const { post } = await api('/api/posts/' + id);
     const minutes = Math.max(1, Math.round((post.content || '').length / 400));
-    const isAdmin = !!getToken();
+    const isAdmin = true; // 令牌验证已关闭，管理按钮常显
     box.innerHTML =
       '<article class="post-article">' +
         '<div class="post-meta-row">' +
@@ -312,7 +312,7 @@ async function loadComments(postId) {
     document.getElementById('comment-count').textContent = comments.length ? '(' + comments.length + ')' : '';
     list.innerHTML = '';
     if (!comments.length) { list.innerHTML = '<p class="comment-empty">还没有评论，来抢沙发。</p>'; return; }
-    const isAdmin = !!getToken();
+    const isAdmin = true; // 令牌验证已关闭，管理按钮常显
     comments.forEach(c => {
       const item = document.createElement('div');
       item.className = 'comment-item';
@@ -550,9 +550,19 @@ async function deleteCommentAdmin(id) {
 
 // ── 令牌 ──
 const TOKEN_KEY = 'blog_admin_token';
+let lastTokenAttempt = 0;
 function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
 function authHeaders() { return { 'Content-Type': 'application/json', 'x-admin-token': getToken() }; }
 function askToken(retry) {
+  const now = Date.now();
+  const tip = document.getElementById('modal-tip');
+  if (now - lastTokenAttempt < 3000) {
+    tip.style.color = 'var(--accent-4)';
+    tip.textContent = '令牌不对：检查大小写、空格，确认输的是当前有效密码';
+  } else {
+    tip.style.color = '';
+    tip.textContent = '当前密码 restart2026，输入一次即记住';
+  }
   document.getElementById('token-modal').hidden = false;
   document.getElementById('token-input').value = '';
   window.__tokenRetry = retry;
@@ -564,10 +574,10 @@ function saveToken() {
   localStorage.setItem(TOKEN_KEY, v);
   closeTokenModal();
   toast('令牌已保存');
+  lastTokenAttempt = Date.now();
   if (typeof window.__tokenRetry === 'function') window.__tokenRetry();
 }
 function closeTokenModal() { document.getElementById('token-modal').hidden = true; }
-
 // ── 滚动：进度条 + 回到顶部 ──
 function onScroll() {
   const doc = document.documentElement;
