@@ -53,11 +53,11 @@ function syncThemeIcons() {
 
 // ── 页面切换 ──
 function go(view, tab) {
-  ['home', 'post', 'about', 'admin'].forEach(v => {
+  ['home', 'post', 'tag', 'about', 'admin'].forEach(v => {
     document.getElementById('view-' + v).hidden = v !== view;
   });
   document.querySelectorAll('.nav-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.nav === view || (view === 'post' && b.dataset.nav === 'home'));
+    b.classList.toggle('active', b.dataset.nav === view || ((view === 'post' || view === 'tag') && b.dataset.nav === 'home'));
   });
   if (view === 'admin') adminTab(tab || 'write');
   if (view === 'home' && location.hash) location.hash = '';
@@ -80,15 +80,27 @@ function sortBy(mode) {
 async function loadStats() {
   try {
     const s = await api('/api/stats');
-    document.getElementById('s-posts').textContent = s.postCount;
-    document.getElementById('s-chars').textContent = s.totalChars;
-    document.getElementById('s-likes').textContent = s.totalLikes;
-    document.getElementById('s-views').textContent = s.totalViews;
+    animateNum(document.getElementById('s-posts'), s.postCount);
+    animateNum(document.getElementById('s-chars'), s.totalChars);
+    animateNum(document.getElementById('s-likes'), s.totalLikes);
+    animateNum(document.getElementById('s-views'), s.totalViews);
     document.getElementById('side-stats').innerHTML =
       '<span><b>' + s.postCount + '</b> 篇文章</span>' +
       '<span><b>' + s.totalChars + '</b> 字</span>' +
       '<span><b>' + s.totalLikes + '</b> 点赞 · <b>' + s.totalViews + '</b> 阅读</span>';
   } catch (e) { /* 忽略 */ }
+}
+
+// 数字滚动动画
+function animateNum(el, n) {
+  if (!el) return;
+  const dur = 700, t0 = performance.now();
+  const step = t => {
+    const p = Math.min(1, (t - t0) / dur);
+    el.textContent = Math.round(n * (p * (2 - p)));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 async function loadPosts() {
@@ -140,12 +152,15 @@ function renderFeed() {
     card.className = 'post-card';
     card.style.animationDelay = (i * 60) + 'ms';
     card.innerHTML =
-      '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
+      '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill" onclick="event.stopPropagation();goTag(\'' + escapeHtml(p.tag || '未分类') + '\')">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
       '<div class="post-body">' +
         '<div class="post-date">' + escapeHtml(p.date) + ' · 阅读 ' + p.views + '</div>' +
         '<div class="post-title">' + highlight(p.title) + '</div>' +
         '<div class="post-excerpt">' + highlight(p.excerpt || '') + '</div>' +
-        '<div class="post-meta"><span>♥ ' + p.likes + '</span><span>评论 ' + (p.comments || 0) + '</span></div>' +
+        '<div class="post-meta">' +
+          '<span><svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 14.5C4.6 12.2 1.5 9.8 1.5 6.6 1.5 4.6 3.1 3 5.1 3c1.2 0 2.3.6 2.9 1.6C8.6 3.6 9.7 3 10.9 3c2 0 3.6 1.6 3.6 3.6 0 3.2-3.1 5.6-6.5 7.9Z"/></svg>' + p.likes + '</span>' +
+          '<span><svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 3.5C4.9 3.5 2.3 5.7 1.4 8c.9 2.3 3.5 4.5 6.6 4.5s5.7-2.2 6.6-4.5c-.9-2.3-3.5-4.5-6.6-4.5Zm0 7a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/></svg>阅读 ' + p.views + '</span>' +
+        '</div>' +
       '</div>';
     card.addEventListener('click', () => openPost(p.id));
     grid.appendChild(card);
@@ -175,11 +190,40 @@ async function renderSidebar() {
         ).join('')
       : '<p class="comment-empty">暂无</p>';
   } catch (e) { /* 忽略 */ }
-  // 标签云
+  // 标签云（点击进独立标签页）
   const tags = [...new Set(POSTS.map(p => p.tag).filter(Boolean))];
   document.getElementById('side-tags').innerHTML = tags.map(t =>
-    '<button class="tag-chip' + (t === filterTag ? ' active' : '') + '" onclick="setFilter(\'' + t + '\')">' + escapeHtml(t) + '</button>'
+    '<button class="tag-chip' + (t === filterTag ? ' active' : '') + '" onclick="goTag(\'' + t + '\')">' + escapeHtml(t) + '</button>'
   ).join('') || '<p class="comment-empty">暂无</p>';
+}
+
+// ── 标签独立页 ──
+function goTag(tag) {
+  filterTag = tag;
+  renderTagView();
+  go('tag');
+}
+function renderTagView() {
+  const grid = document.getElementById('tag-grid');
+  const list = POSTS.filter(p => p.tag === filterTag);
+  document.getElementById('tag-title').textContent = filterTag;
+  document.getElementById('tag-count').textContent = '共 ' + list.length + ' 篇';
+  document.getElementById('tag-empty').hidden = list.length > 0;
+  grid.innerHTML = '';
+  list.forEach(p => {
+    const card = document.createElement('button');
+    card.className = 'post-card';
+    card.innerHTML =
+      '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
+      '<div class="post-body">' +
+        '<div class="post-date">' + escapeHtml(p.date) + ' · 阅读 ' + p.views + '</div>' +
+        '<div class="post-title">' + escapeHtml(p.title) + '</div>' +
+        '<div class="post-excerpt">' + escapeHtml(p.excerpt || '') + '</div>' +
+        '<div class="post-meta"><span>♥ ' + p.likes + '</span><span>阅读 ' + p.views + '</span></div>' +
+      '</div>';
+    card.addEventListener('click', () => openPost(p.id));
+    grid.appendChild(card);
+  });
 }
 
 // ── 轻量 Markdown 渲染 ──
@@ -658,6 +702,15 @@ async function loadStatsPanel() {
     tbody.innerHTML = s.rows.map(r =>
       '<tr><td class="t-title">' + escapeHtml(r.title) + '</td><td>' + escapeHtml(r.date) + '</td><td>' + r.views + '</td><td>' + r.likes + '</td><td>' + fmtTime(r.created_at) + '</td></tr>'
     ).join('');
+    // 阅读量分布条形图（纯 CSS 实现，无需图表库）
+    const chart = document.getElementById('views-chart');
+    const maxV = Math.max(1, ...s.rows.map(r => Number(r.views)));
+    chart.innerHTML = s.rows.slice(0, 10).map(r => {
+      const w = Math.max(2, Math.round(Number(r.views) / maxV * 100));
+      return '<div class="vbar-row"><span class="vbar-label" title="' + escapeHtml(r.title) + '">' + escapeHtml(r.title) + '</span>' +
+        '<div class="vbar-track"><div class="vbar-fill" style="width:' + w + '%"></div></div>' +
+        '<span class="vbar-num">' + r.views + '</span></div>';
+    }).join('') || '<p class="comment-empty">暂无数据</p>';
   } catch (e) {
     if (e.message.includes('令牌')) askToken(loadStatsPanel);
     else { m.innerHTML = '<p class="comment-empty">加载失败：' + escapeHtml(e.message) + '</p>'; }
@@ -730,6 +783,8 @@ function onScroll() {
   const pct = doc.scrollTop / (doc.scrollHeight - doc.clientHeight || 1);
   document.getElementById('progress-bar').style.width = (pct * 100) + '%';
   document.getElementById('back-top').classList.toggle('show', doc.scrollTop > 400);
+  const tb = document.querySelector('.topbar');
+  if (tb) tb.classList.toggle('scrolled', doc.scrollTop > 8);
 }
 
 // ── 启动 ──
