@@ -35,6 +35,7 @@ const SCHEMA = {
     ? `CREATE TABLE IF NOT EXISTS comments (
         id SERIAL PRIMARY KEY,
         post_id INTEGER NOT NULL,
+        parent_id INTEGER DEFAULT 0,
         author TEXT DEFAULT '匿名',
         content TEXT NOT NULL,
         created_at TIMESTAMPTZ DEFAULT now()
@@ -42,6 +43,7 @@ const SCHEMA = {
     : `CREATE TABLE IF NOT EXISTS comments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         post_id INTEGER NOT NULL,
+        parent_id INTEGER DEFAULT 0,
         author TEXT DEFAULT '匿名',
         content TEXT NOT NULL,
         created_at TEXT DEFAULT (datetime('now','localtime'))
@@ -148,8 +150,10 @@ if (driver === 'sqlite') {
 // ── 旧库升级：给已有 posts 表补 cover_url 字段（已存在则跳过）──
 if (driver === 'sqlite') {
   try { db.exec("ALTER TABLE posts ADD COLUMN cover_url TEXT DEFAULT ''"); } catch (e) { /* 字段已存在 */ }
+  try { db.exec('ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT 0'); } catch (e) { /* 字段已存在 */ }
 } else {
   db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS cover_url TEXT DEFAULT ''");
+  db.query('ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id INTEGER DEFAULT 0');
 }
 
 // ── 种子：库为空时写入 ──
@@ -259,28 +263,45 @@ async function stats() {
 async function listComments(postId) {
   if (driver === 'sqlite') {
     return db.prepare(
-      'SELECT id, author, content, created_at FROM comments WHERE post_id = ? ORDER BY id DESC'
+      'SELECT id, author, content, created_at, parent_id FROM comments WHERE post_id = ? ORDER BY id DESC'
     ).all(postId);
   }
   const r = await db.query(
-    'SELECT id, author, content, created_at FROM comments WHERE post_id = $1 ORDER BY id DESC',
+    'SELECT id, author, content, created_at, parent_id FROM comments WHERE post_id = $1 ORDER BY id DESC',
     [postId]
   );
   return r.rows;
 }
 
-async function insertComment(postId, author, content) {
+async function getComment(id) {
+  if (driver === 'sqlite') return db.prepare('SELECT id, post_id, parent_id FROM comments WHERE id = ?').get(id) || null;
+  const r = await db.query('SELECT id, post_id, parent_id FROM comments WHERE id = $1', [id]);
+  return r.rows[0] || null;
+}
+
+async function insertComment(postId, author, content, parentId) {
+  const pid = Number(parentId) || 0;
   if (driver === 'sqlite') {
     const info = db.prepare(
-      'INSERT INTO comments (post_id, author, content) VALUES (?, ?, ?)'
-    ).run(postId, author, content);
+      'INSERT INTO comments (post_id, parent_id, author, content) VALUES (?, ?, ?, ?)'
+    ).run(postId, pid, author, content);
     return Number(info.lastInsertRowid);
   }
   const r = await db.query(
-    'INSERT INTO comments (post_id, author, content) VALUES ($1,$2,$3) RETURNING id',
-    [postId, author, content]
+    'INSERT INTO comments (post_id, parent_id, author, content) VALUES ($1,$2,$3,$4) RETURNING id',
+    [postId, pid, author, content]
   );
   return Number(r.rows[0].id);
+}
+
+// 最新评论（侧栏用）
+async function recentComments(limit) {
+  const n = Number(limit || 5);
+  const sql =
+    'SELECT c.id, c.author, c.content, c.created_at, p.title AS post_title, p.id AS post_id FROM comments c LEFT JOIN posts p ON c.post_id = p.id ORDER BY c.id DESC LIMIT ' + n;
+  if (driver === 'sqlite') return db.prepare(sql).all();
+  const r = await db.query(sql);
+  return r.rows;
 }
 
 async function deleteComment(id) {
@@ -389,7 +410,8 @@ const SETTINGS_DEFAULTS = {
   site_name: '重启日志',
   site_tagline: '从躺平到站直：一个退伍兵的编程日记。',
   site_accent: '#0d9488',
-  site_footer: 'RESTART·LOG — 从躺平到站直 · 前端 + Express + SQLite/Postgres 全栈闭环'
+  site_footer: 'RESTART·LOG — 从躺平到站直 · 前端 + Express + SQLite/Postgres 全栈闭环',
+  site_notice: ''
 };
 
 async function getSettings() {
@@ -417,6 +439,6 @@ async function setSettings(obj) {
 
 module.exports = {
   listPosts, getPost, incrementViews, insertPost, updatePost, deletePost, incrementLikes, stats,
-  listComments, insertComment, deleteComment, hotPosts, archive, adminStats, allComments, ping,
-  relatedPosts, neighbors, getSettings, setSettings
+  listComments, getComment, insertComment, deleteComment, hotPosts, archive, adminStats, allComments, ping,
+  relatedPosts, neighbors, getSettings, setSettings, recentComments
 };

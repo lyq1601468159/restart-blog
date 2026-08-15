@@ -39,6 +39,10 @@
 
     <!-- ═══ 首页 ═══ -->
     <section id="view-home" class="view">
+      <div class="notice-bar" id="notice-bar" hidden>
+        <span id="notice-text"></span>
+        <button class="notice-close" onclick="closeNotice()" aria-label="关闭">×</button>
+      </div>
       <div class="hero">
         <div class="hero-deco" aria-hidden="true"></div>
         <div class="hero-left">
@@ -105,6 +109,11 @@
           <div class="side-card">
             <div class="side-title">标签</div>
             <div class="tag-cloud" id="side-tags"></div>
+          </div>
+
+          <div class="side-card">
+            <div class="side-title">最新评论</div>
+            <div class="recent-comments" id="side-recent"><div class="skeleton" style="height:70px"></div></div>
           </div>
 
           <div class="side-card">
@@ -246,7 +255,13 @@
     <p class="footer-sub">手写的每一行代码，都是把自己重新焊回生活里的铆钉。</p>
   </footer>
 
-  <button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到顶部">↑</button>
+  <button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到顶部">
+    <svg viewBox="0 0 36 36" width="42" height="42">
+      <circle cx="18" cy="18" r="16" class="ring-bg"/>
+      <circle cx="18" cy="18" r="16" class="ring-fg" id="ring-fg"/>
+    </svg>
+    <span class="back-top-arrow">↑</span>
+  </button>
 
   <div class="toast" id="toast" hidden></div>
 

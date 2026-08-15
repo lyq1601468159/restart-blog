@@ -149,7 +149,7 @@ function renderFeed() {
 
   list.forEach((p, i) => {
     const card = document.createElement('button');
-    card.className = 'post-card';
+    card.className = 'post-card reveal';
     card.style.animationDelay = (i * 60) + 'ms';
     card.innerHTML =
       '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill" onclick="event.stopPropagation();goTag(\'' + escapeHtml(p.tag || '未分类') + '\')">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
@@ -165,6 +165,7 @@ function renderFeed() {
     card.addEventListener('click', () => openPost(p.id));
     grid.appendChild(card);
   });
+  observeReveals(grid);
 }
 
 // ── 渲染：侧边栏 ──
@@ -190,6 +191,16 @@ async function renderSidebar() {
         ).join('')
       : '<p class="comment-empty">暂无</p>';
   } catch (e) { /* 忽略 */ }
+  // 最新评论
+  try {
+    const { comments } = await api('/api/recent-comments');
+    const box = document.getElementById('side-recent');
+    box.innerHTML = comments.length ? comments.map(c =>
+      '<div class="rc-item" onclick="openPost(' + (c.post_id || 1) + ')">' +
+        '<div class="rc-head"><b>' + escapeHtml(c.author || '匿名') + '</b> 评论了《' + escapeHtml(c.post_title || '文章') + '》</div>' +
+        '<div class="rc-text">' + escapeHtml(c.content) + '</div>' +
+      '</div>').join('') : '<p class="comment-empty">还没有评论</p>';
+  } catch (e) { /* 忽略 */ }
   // 标签云（点击进独立标签页）
   const tags = [...new Set(POSTS.map(p => p.tag).filter(Boolean))];
   document.getElementById('side-tags').innerHTML = tags.map(t =>
@@ -212,7 +223,7 @@ function renderTagView() {
   grid.innerHTML = '';
   list.forEach(p => {
     const card = document.createElement('button');
-    card.className = 'post-card';
+    card.className = 'post-card reveal';
     card.innerHTML =
       '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
       '<div class="post-body">' +
@@ -224,6 +235,7 @@ function renderTagView() {
     card.addEventListener('click', () => openPost(p.id));
     grid.appendChild(card);
   });
+  observeReveals(grid);
 }
 
 // ── 轻量 Markdown 渲染 ──
@@ -313,6 +325,7 @@ async function openPost(id) {
             '<span id="star-count">点赞 ' + post.likes + '</span>' +
           '</button>' +
           '<button class="tool-btn" onclick="copyLink(' + post.id + ')">复制链接</button>' +
+          '<button class="tool-btn" onclick="window.print()">打印本文</button>' +
           '<button class="tool-btn" onclick="fontSize(-1)" title="减小字号">A−</button>' +
           '<button class="tool-btn" onclick="fontSize(1)" title="增大字号">A+</button>' +
           (isAdmin
@@ -326,6 +339,7 @@ async function openPost(id) {
           '<div class="comment-form">' +
             '<input id="c-author" placeholder="昵称（可留空，默认匿名）" maxlength="20">' +
             '<textarea id="c-content" rows="3" placeholder="说点什么……（最多 500 字）" maxlength="500"></textarea>' +
+            '<p class="replying-hint" id="replying-hint" hidden></p>' +
             '<button class="btn-primary" id="c-submit" style="align-self:flex-start" onclick="submitComment(' + post.id + ')">发表评论</button>' +
           '</div>' +
         '</div>' +
@@ -452,7 +466,14 @@ function applySettings(s) {
   window.__siteName = s.site_name;
   document.title = s.site_name + ' · ' + s.site_tagline;
   const sub = document.getElementById('hero-sub');
-  if (sub) sub.textContent = s.site_tagline;
+  if (sub) typewriter(sub, s.site_tagline);
+  const nb = document.getElementById('notice-bar');
+  if (nb) {
+    if (s.site_notice && localStorage.getItem('blog-notice-closed') !== '1') {
+      document.getElementById('notice-text').textContent = s.site_notice;
+      nb.hidden = false;
+    } else { nb.hidden = true; }
+  }
   const ft = document.getElementById('footer-text');
   if (ft) ft.textContent = s.site_footer;
   document.documentElement.style.setProperty('--accent', s.site_accent);
@@ -500,19 +521,42 @@ async function loadComments(postId) {
     list.innerHTML = '';
     if (!comments.length) { list.innerHTML = '<p class="comment-empty">还没有评论，来抢沙发。</p>'; return; }
     const isAdmin = true; // 令牌验证已关闭，管理按钮常显
+    const authorMap = {};
+    comments.forEach(c => { authorMap[c.id] = c.author || '匿名'; });
     comments.forEach(c => {
       const item = document.createElement('div');
-      item.className = 'comment-item';
+      item.className = 'comment-item' + (Number(c.parent_id) ? ' reply' : '');
+      const replyTo = Number(c.parent_id) ? authorMap[c.parent_id] : '';
       item.innerHTML =
         '<div class="comment-head">' +
           '<span class="comment-author">' + escapeHtml(c.author || '匿名') + '</span>' +
+          (replyTo ? '<span class="reply-to">回复 @' + escapeHtml(replyTo) + '</span>' : '') +
           '<span class="comment-time">' + fmtTime(c.created_at) + '</span>' +
+          (Number(c.parent_id) ? '<span class="reply-badge">回复</span>' : '') +
+          '<button class="comment-reply-btn" onclick="setReplyTo(' + c.id + ',\'' + escapeHtml(c.author || '匿名').replace(/'/g, '\\\'') + '\',' + postId + ')">回复</button>' +
           (isAdmin ? '<button class="comment-del" onclick="deleteComment(' + c.id + ',' + postId + ')">删除</button>' : '') +
         '</div>' +
         '<div class="comment-body">' + escapeHtml(c.content) + '</div>';
       list.appendChild(item);
     });
   } catch (e) { list.innerHTML = '<p class="comment-empty">加载失败</p>'; }
+}
+
+// ── 评论回复 ──
+function setReplyTo(id, author, postId) {
+  window.__replyTo = { id, author, postId };
+  const hint = document.getElementById('replying-hint');
+  if (hint) {
+    hint.hidden = false;
+    hint.innerHTML = '正在回复 <b>@' + escapeHtml(author) + '</b> <a href="javascript:void(0)" onclick="cancelReply()" style="margin-left:10px">取消</a>';
+  }
+  const ta = document.getElementById('c-content');
+  if (ta) ta.focus();
+}
+function cancelReply() {
+  window.__replyTo = null;
+  const h = document.getElementById('replying-hint');
+  if (h) h.hidden = true;
 }
 async function submitComment(postId) {
   const content = document.getElementById('c-content').value.trim();
@@ -523,9 +567,10 @@ async function submitComment(postId) {
   try {
     await api('/api/posts/' + postId + '/comments', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author, content })
+      body: JSON.stringify({ author, content, parentId: window.__replyTo ? window.__replyTo.id : 0 })
     });
     document.getElementById('c-content').value = '';
+    cancelReply();
     toast('评论已发布');
     loadComments(postId);
     loadStats();
@@ -783,8 +828,68 @@ function onScroll() {
   const pct = doc.scrollTop / (doc.scrollHeight - doc.clientHeight || 1);
   document.getElementById('progress-bar').style.width = (pct * 100) + '%';
   document.getElementById('back-top').classList.toggle('show', doc.scrollTop > 400);
+  const ring = document.getElementById('ring-fg');
+  if (ring) ring.style.strokeDashoffset = String(100.5 * (1 - pct));
   const tb = document.querySelector('.topbar');
   if (tb) tb.classList.toggle('scrolled', doc.scrollTop > 8);
+}
+
+// ── 特效：打字机 / 公告 / 光斑 / 滚动渐入 ──
+let __twTimer = null;
+function typewriter(el, text) {
+  if (!el) return;
+  clearTimeout(__twTimer);
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = text;
+    return;
+  }
+  el.classList.add('typewriter');
+  el.textContent = '';
+  let i = 0;
+  (function tick() {
+    if (i <= text.length) {
+      el.textContent = text.slice(0, i++);
+      __twTimer = setTimeout(tick, 55);
+    } else {
+      el.classList.remove('typewriter');
+    }
+  })();
+}
+function closeNotice() {
+  localStorage.setItem('blog-notice-closed', '1');
+  document.getElementById('notice-bar').hidden = true;
+}
+function initCursorGlow() {
+  if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
+  const g = document.createElement('div');
+  g.className = 'cursor-glow';
+  document.body.appendChild(g);
+  document.body.classList.add('glow-on');
+  let raf = null;
+  window.addEventListener('mousemove', e => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      g.style.left = e.clientX + 'px';
+      g.style.top = e.clientY + 'px';
+      raf = null;
+    });
+  });
+}
+let __io = null;
+function initReveal() {
+  if (!('IntersectionObserver' in window)) {
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+    return;
+  }
+  __io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) { en.target.classList.add('in'); __io.unobserve(en.target); }
+    });
+  }, { threshold: 0.08 });
+}
+function observeReveals(root) {
+  if (!__io) return;
+  root.querySelectorAll('.reveal:not(.in)').forEach(el => __io.observe(el));
 }
 
 // ── 启动 ──
@@ -795,6 +900,9 @@ window.addEventListener('hashchange', () => {
   if (m && Number(m[1]) !== currentPostId) openPost(Number(m[1]));
 });
 initTheme();
+initReveal();
+initCursorGlow();
+observeReveals(document);
 loadSettings();
 loadStats();
 loadPosts();

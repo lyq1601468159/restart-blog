@@ -111,15 +111,28 @@ app.get('/api/posts/:id/comments', async (req, res) => {
   res.json({ comments });
 });
 
-// ── 发表评论（公开，但有长度限制）──
+// ── 发表评论（公开，支持回复，长度限制）──
 app.post('/api/posts/:id/comments', async (req, res) => {
   const post = await db.getPost(req.params.id);
   if (!post) return res.status(404).json({ error: '文章不存在' });
   const author = ((req.body || {}).author || '').trim().slice(0, 20);
   const content = ((req.body || {}).content || '').trim().slice(0, 500);
   if (!content) return res.status(400).json({ error: '评论内容不能为空' });
-  const id = await db.insertComment(req.params.id, author || '匿名', content);
+  // 回复校验：只能回复同文章的顶级评论，且只允许一层嵌套
+  const parentId = Math.max(0, Number((req.body || {}).parentId) || 0);
+  if (parentId) {
+    const parent = await db.getComment(parentId);
+    if (!parent || parent.post_id !== Number(req.params.id) || Number(parent.parent_id) !== 0) {
+      return res.status(400).json({ error: '回复目标无效' });
+    }
+  }
+  const id = await db.insertComment(req.params.id, author || '匿名', content, parentId);
   res.json({ ok: true, id });
+});
+
+// ── 最新评论（侧栏）──
+app.get('/api/recent-comments', async (req, res) => {
+  res.json({ comments: await db.recentComments(5) });
 });
 
 // ── 删除评论（需令牌）──
