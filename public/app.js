@@ -10,6 +10,7 @@ let filterTag = '';
 let sortMode = 'date';   // date | likes | views
 let editId = null;       // 正在编辑的文章 id
 let currentPostId = null;
+let HEADINGS = [];       // 当前文章的目录结构（由正文标题生成）
 
 // ── 工具 ──
 async function api(path, options) {
@@ -139,7 +140,7 @@ function renderFeed() {
     card.className = 'post-card';
     card.style.animationDelay = (i * 60) + 'ms';
     card.innerHTML =
-      '<div class="post-cover cover-' + p.cover + '"><span class="pill">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
+      '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
       '<div class="post-body">' +
         '<div class="post-date">' + escapeHtml(p.date) + ' · 阅读 ' + p.views + '</div>' +
         '<div class="post-title">' + highlight(p.title) + '</div>' +
@@ -192,6 +193,7 @@ function inlineMd(s) {
 function mdToHtml(text) {
   const lines = String(text).split(/\r?\n/);
   let out = [], i = 0, inCode = false, codeBuf = [], para = [];
+  HEADINGS = [];   // 每次渲染重置目录
   const flushPara = () => {
     if (para.length) { out.push('<p>' + para.join('<br>') + '</p>'); para = []; }
   };
@@ -207,7 +209,11 @@ function mdToHtml(text) {
     } else if (/^#{1,3}\s+/.test(t)) {
       flushPara();
       const level = t.match(/^#+/)[0].length;
-      out.push('<h' + (level > 2 ? 3 : 2) + '>' + inlineMd(t.replace(/^#+\s+/, '')) + '</h' + (level > 2 ? 3 : 2) + '>');
+      const tag = level > 2 ? 3 : 2;
+      const text = inlineMd(t.replace(/^#+\s+/, ''));
+      const id = 'sec-' + HEADINGS.length;
+      HEADINGS.push({ id, text, level });
+      out.push('<h' + tag + ' id="' + id + '">' + text + '</h' + tag + '>');
     } else if (/^>\s?/.test(t)) {
       flushPara();
       out.push('<blockquote>' + inlineMd(t.replace(/^>\s?/, '')) + '</blockquote>');
@@ -248,6 +254,7 @@ async function openPost(id) {
     const isAdmin = true; // 令牌验证已关闭，管理按钮常显
     box.innerHTML =
       '<article class="post-article">' +
+        (post.cover_url ? '<img class="detail-cover" src="' + post.cover_url + '" alt="' + escapeHtml(post.title) + '" onerror="this.remove()">' : '') +
         '<div class="post-meta-row">' +
           '<span>' + escapeHtml(post.date) + '</span>' +
           '<span>' + escapeHtml(post.tag || '未分类') + '</span>' +
@@ -278,6 +285,9 @@ async function openPost(id) {
         '</div>' +
       '</article>';
     loadComments(post.id);
+    buildToc();
+    loadNeighbors(post.id);
+    loadRelated(post.id);
     loadStats();
   } catch (e) {
     box.innerHTML = '<div class="post-article"><p class="empty-state">文章不存在或加载失败：' + escapeHtml(e.message) + '</p></div>';
@@ -301,6 +311,60 @@ function copyLink(id) {
     () => toast('链接已复制：' + url),
     () => toast('复制失败，地址是：' + url)
   );
+}
+
+// ── 目录 / 上一篇下一篇 / 相关文章 ──
+function buildToc() {
+  const box = document.getElementById('toc-box');
+  if (!box) return;
+  if (!HEADINGS.length) { box.hidden = true; return; }
+  box.innerHTML = '<div class="toc-title">目录</div>' +
+    HEADINGS.map(h => '<a href="#' + h.id + '" class="' + (h.level > 2 ? 'lv3' : '') + '" data-toc="' + h.id + '">' + h.text + '</a>').join('');
+  box.hidden = false;
+  box.querySelectorAll('a').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    document.getElementById(a.dataset.toc).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  // 滚动时高亮当前章节
+  const links = [...box.querySelectorAll('a')];
+  const onScrollToc = () => {
+    let cur = null;
+    HEADINGS.forEach(h => {
+      const el = document.getElementById(h.id);
+      if (el && el.getBoundingClientRect().top <= 130) cur = h.id;
+    });
+    links.forEach(l => l.classList.toggle('active', l.dataset.toc === cur));
+  };
+  window.removeEventListener('scroll', onScrollToc);
+  window.addEventListener('scroll', onScrollToc, { passive: true });
+}
+
+async function loadNeighbors(id) {
+  try {
+    const { prev, next } = await api('/api/posts/' + id + '/neighbors');
+    const box = document.getElementById('post-box');
+    box.insertAdjacentHTML('beforeend',
+      '<div class="prevnext">' +
+      (prev ? '<a href="#" onclick="openPost(' + prev.id + ');return false"><div class="pn-label">← 上一篇</div><div class="pn-title">' + escapeHtml(prev.title) + '</div></a>' : '<span></span>') +
+      (next ? '<a class="next" href="#" onclick="openPost(' + next.id + ');return false"><div class="pn-label">下一篇 →</div><div class="pn-title">' + escapeHtml(next.title) + '</div></a>' : '<span></span>') +
+      '</div>');
+  } catch (e) { /* 忽略 */ }
+}
+
+async function loadRelated(id) {
+  try {
+    const { posts } = await api('/api/posts/' + id + '/related');
+    if (!posts.length) return;
+    const box = document.getElementById('post-box');
+    box.insertAdjacentHTML('beforeend',
+      '<div class="related"><div class="related-title">相关阅读</div><div class="related-grid">' +
+      posts.map(p =>
+        '<button class="related-card" onclick="openPost(' + p.id + ')">' +
+          '<div class="rc-date">' + escapeHtml(p.date) + '</div>' +
+          '<div class="rc-title">' + escapeHtml(p.title) + '</div>' +
+        '</button>').join('') +
+      '</div></div>');
+  } catch (e) { /* 忽略 */ }
 }
 
 // ── 评论 ──
@@ -382,6 +446,7 @@ async function editPost(id) {
     document.getElementById('f-excerpt').value = post.excerpt || '';
     document.getElementById('f-content').value = post.content;
     document.getElementById('f-cover').value = String(post.cover);
+    document.getElementById('f-cover-url').value = post.cover_url || '';
     document.getElementById('btn-submit').textContent = '保存修改';
     document.getElementById('edit-hint').textContent = '正在编辑：《' + post.title + '》';
     document.getElementById('form-error').hidden = true;
@@ -393,7 +458,7 @@ async function editPost(id) {
 function resetForm() {
   editId = null;
   document.getElementById('f-id').value = '';
-  ['f-title', 'f-tag', 'f-date', 'f-excerpt', 'f-content'].forEach(id => document.getElementById(id).value = '');
+  ['f-title', 'f-tag', 'f-date', 'f-excerpt', 'f-content', 'f-cover-url'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-cover').value = '0';
   document.getElementById('btn-submit').textContent = '发布文章';
   document.getElementById('edit-hint').textContent = '';
@@ -415,7 +480,8 @@ async function submitPost() {
     date: document.getElementById('f-date').value.trim(),
     excerpt: document.getElementById('f-excerpt').value.trim(),
     content,
-    cover: Number(document.getElementById('f-cover').value)
+    cover: Number(document.getElementById('f-cover').value),
+    coverUrl: document.getElementById('f-cover-url').value.trim()
   };
   try {
     if (editId) {

@@ -114,6 +114,7 @@
     <section id="view-post" class="view" hidden>
       <button class="back-link" onclick="go('home')">← 返回首页</button>
       <div class="post-box" id="post-box"></div>
+      <aside class="toc" id="toc-box" hidden></aside>
     </section>
 
     <!-- ═══ 关于 ═══ -->
@@ -159,6 +160,7 @@
               </select>
             </label>
           </div>
+          <label class="field"><span>封面图链接（可选：先用"上传图片"拿到链接填进来，或粘贴外链图片地址）</span><input type="text" id="f-cover-url" placeholder="/uploads/xxx.png 或 https://..."></label>
           <label class="field"><span>摘要（留空自动取正文前 60 字）</span><textarea id="f-excerpt" rows="2" placeholder="列表页显示的一句话"></textarea></label>
           <label class="field">
             <span>正文 *（支持：空行分段、<code># 小标题</code>、<code>```代码块```</code>、<code>![说明](/uploads/图.png)</code>、<code>**加粗**</code>、<code>&gt; 引用</code>、<code>- 列表</code>）</span>

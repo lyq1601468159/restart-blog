@@ -20,6 +20,7 @@ const SCHEMA = {
         title TEXT NOT NULL, tag TEXT DEFAULT '', date TEXT DEFAULT '',
         excerpt TEXT DEFAULT '', content TEXT NOT NULL,
         likes INTEGER DEFAULT 0, views INTEGER DEFAULT 0, cover INTEGER DEFAULT 0,
+        cover_url TEXT DEFAULT '',
         created_at TIMESTAMPTZ DEFAULT now()
       )`
     : `CREATE TABLE IF NOT EXISTS posts (
@@ -27,6 +28,7 @@ const SCHEMA = {
         title TEXT NOT NULL, tag TEXT DEFAULT '', date TEXT DEFAULT '',
         excerpt TEXT DEFAULT '', content TEXT NOT NULL,
         likes INTEGER DEFAULT 0, views INTEGER DEFAULT 0, cover INTEGER DEFAULT 0,
+        cover_url TEXT DEFAULT '',
         created_at TEXT DEFAULT (datetime('now','localtime'))
       )`,
   comments: isPg
@@ -138,6 +140,13 @@ if (driver === 'sqlite') {
   db.query(SCHEMA.comments);
 }
 
+// ── 旧库升级：给已有 posts 表补 cover_url 字段（已存在则跳过）──
+if (driver === 'sqlite') {
+  try { db.exec("ALTER TABLE posts ADD COLUMN cover_url TEXT DEFAULT ''"); } catch (e) { /* 字段已存在 */ }
+} else {
+  db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS cover_url TEXT DEFAULT ''");
+}
+
 // ── 种子：库为空时写入 ──
 if (driver === 'sqlite') {
   const n = db.prepare('SELECT COUNT(*) AS n FROM posts').get().n;
@@ -169,7 +178,7 @@ if (driver === 'sqlite') {
 // 文章列表（不含正文）
 async function listPosts() {
   const sql =
-    'SELECT id, title, tag, date, excerpt, likes, views, cover FROM posts ORDER BY id DESC';
+    'SELECT id, title, tag, date, excerpt, likes, views, cover, cover_url FROM posts ORDER BY id DESC';
   if (driver === 'sqlite') return db.prepare(sql).all();
   const r = await db.query(sql);
   return r.rows;
@@ -192,13 +201,13 @@ async function incrementViews(id) {
 async function insertPost(p) {
   if (driver === 'sqlite') {
     const info = db.prepare(
-      'INSERT INTO posts (title, tag, date, excerpt, content, cover) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(p.title, p.tag, p.date, p.excerpt, p.content, p.cover);
+      'INSERT INTO posts (title, tag, date, excerpt, content, cover, cover_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(p.title, p.tag, p.date, p.excerpt, p.content, p.cover, p.coverUrl || '');
     return Number(info.lastInsertRowid);
   }
   const r = await db.query(
-    'INSERT INTO posts (title, tag, date, excerpt, content, cover) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
-    [p.title, p.tag, p.date, p.excerpt, p.content, p.cover]
+    'INSERT INTO posts (title, tag, date, excerpt, content, cover, cover_url) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+    [p.title, p.tag, p.date, p.excerpt, p.content, p.cover, p.coverUrl || '']
   );
   return Number(r.rows[0].id);
 }
@@ -282,13 +291,13 @@ async function deleteComment(id) {
 async function updatePost(id, p) {
   if (driver === 'sqlite') {
     const info = db.prepare(
-      'UPDATE posts SET title=?, tag=?, date=?, excerpt=?, content=?, cover=? WHERE id=?'
-    ).run(p.title, p.tag, p.date, p.excerpt, p.content, p.cover, id);
+      'UPDATE posts SET title=?, tag=?, date=?, excerpt=?, content=?, cover=?, cover_url=? WHERE id=?'
+    ).run(p.title, p.tag, p.date, p.excerpt, p.content, p.cover, p.coverUrl || '', id);
     return Number(info.changes) > 0;
   }
   const r = await db.query(
-    'UPDATE posts SET title=$1, tag=$2, date=$3, excerpt=$4, content=$5, cover=$6 WHERE id=$7',
-    [p.title, p.tag, p.date, p.excerpt, p.content, p.cover, id]
+    'UPDATE posts SET title=$1, tag=$2, date=$3, excerpt=$4, content=$5, cover=$6, cover_url=$7 WHERE id=$8',
+    [p.title, p.tag, p.date, p.excerpt, p.content, p.cover, p.coverUrl || '', id]
   );
   return r.rowCount > 0;
 }
@@ -339,7 +348,37 @@ async function ping() {
   try { await db.query('SELECT 1'); } catch (e) { console.error('[db] 心跳失败：', e.message); }
 }
 
+// 相关文章：同标签的其他文章
+async function relatedPosts(id, tag, limit) {
+  const n = Number(limit || 3);
+  const sql = "SELECT id, title, tag, date, cover, cover_url FROM posts WHERE tag = ? AND id != ? ORDER BY id DESC LIMIT " + n;
+  if (driver === 'sqlite') return db.prepare(sql).all(tag, id);
+  const r = await db.query(
+    'SELECT id, title, tag, date, cover, cover_url FROM posts WHERE tag = $1 AND id != $2 ORDER BY id DESC LIMIT ' + n,
+    [tag, id]
+  );
+  return r.rows;
+}
+
+// 上一篇 / 下一篇（按 id 相邻）
+async function neighbors(id) {
+  const get = async (sqliteSql, pgSql, args) =>
+    driver === 'sqlite'
+      ? db.prepare(sqliteSql).get(...args) || null
+      : (await db.query(pgSql, args)).rows[0] || null;
+  const prev = await get(
+    'SELECT id, title, date FROM posts WHERE id < ? ORDER BY id DESC LIMIT 1',
+    'SELECT id, title, date FROM posts WHERE id < $1 ORDER BY id DESC LIMIT 1',
+    [id]);
+  const next = await get(
+    'SELECT id, title, date FROM posts WHERE id > ? ORDER BY id ASC LIMIT 1',
+    'SELECT id, title, date FROM posts WHERE id > $1 ORDER BY id ASC LIMIT 1',
+    [id]);
+  return { prev, next };
+}
+
 module.exports = {
   listPosts, getPost, incrementViews, insertPost, updatePost, deletePost, incrementLikes, stats,
-  listComments, insertComment, deleteComment, hotPosts, archive, adminStats, allComments, ping
+  listComments, insertComment, deleteComment, hotPosts, archive, adminStats, allComments, ping,
+  relatedPosts, neighbors
 };

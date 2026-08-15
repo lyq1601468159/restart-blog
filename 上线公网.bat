@@ -1,10 +1,10 @@
 @echo off
 rem ═════════════════════════════════════════════════
-rem 一键上线公网（花生壳版）
-rem 1. 双击运行：启动博客服务（后台小窗）
-rem 2. 确认花生壳客户端保持打开（它负责公网映射）
-rem 3. 固定网址：https://6rn286kq9554.vicp.fun
-rem 关掉本窗口 = 博客服务停止 = 网站下线
+rem 一键上线公网（cpolar 免费版）
+rem 1. 双击运行：启动博客服务 + 打开 cpolar 隧道
+rem 2. 看窗口里 "https://xxx.cpolar.cn" 那行 = 你的公网网址
+rem 3. 免费版注意：重启本脚本会换新网址；电脑关机则下线
+rem 关掉本窗口 = 网站下线
 rem ═════════════════════════════════════════════════
 cd /d %~dp0
 
@@ -12,13 +12,9 @@ echo 正在启动博客服务...
 start /min cmd /c "node start.js"
 timeout /t 3 >nul
 
+echo 正在连接公网隧道...
+"%USERPROFILE%\cpolar\cpolar.exe" http 3000 -region cn -log stdout -log-level INFO
+
 echo.
-echo ══════════════════════════════════════════════
-echo   你的博客已上线（固定网址）：
-echo   https://6rn286kq9554.vicp.fun
-echo ══════════════════════════════════════════════
-echo.
-echo 注意：花生壳客户端必须保持打开，网站才在线。
-echo 关闭本窗口 = 网站下线。
-echo.
+echo 隧道已关闭，网站已下线。
 pause

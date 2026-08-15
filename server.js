@@ -72,7 +72,7 @@ app.get('/api/posts/:id', async (req, res) => {
 
 // ── 发布文章（需令牌）──
 app.post('/api/posts', requireAdmin, async (req, res) => {
-  const { title, tag, date, excerpt, content } = req.body || {};
+  const { title, tag, date, excerpt, content, coverUrl } = req.body || {};
   if (!title || !title.trim() || !content || !content.trim()) {
     return res.status(400).json({ error: '标题和正文不能为空' });
   }
@@ -82,7 +82,8 @@ app.post('/api/posts', requireAdmin, async (req, res) => {
     date: (date || new Date().toISOString().slice(0, 10)).trim(),
     excerpt: (excerpt || content.trim().slice(0, 60)).trim(),
     content: content.trim(),
-    cover: Math.floor(Math.random() * 4)
+    cover: Math.floor(Math.random() * 4),
+    coverUrl: (coverUrl || '').trim()
   });
   res.json({ ok: true, id });
 });
@@ -132,7 +133,7 @@ app.delete('/api/comments/:id', requireAdmin, async (req, res) => {
 app.put('/api/posts/:id', requireAdmin, async (req, res) => {
   const post = await db.getPost(req.params.id);
   if (!post) return res.status(404).json({ error: '文章不存在' });
-  const { title, tag, date, excerpt, content, cover } = req.body || {};
+  const { title, tag, date, excerpt, content, cover, coverUrl } = req.body || {};
   if (!title || !title.trim() || !content || !content.trim()) {
     return res.status(400).json({ error: '标题和正文不能为空' });
   }
@@ -142,7 +143,8 @@ app.put('/api/posts/:id', requireAdmin, async (req, res) => {
     date: (date || post.date || new Date().toISOString().slice(0, 10)).trim(),
     excerpt: (excerpt || content.trim().slice(0, 60)).trim(),
     content: content.trim(),
-    cover: cover === undefined ? post.cover : Number(cover)
+    cover: cover === undefined ? post.cover : Number(cover),
+    coverUrl: coverUrl === undefined ? (post.cover_url || '') : (coverUrl || '').trim()
   });
   if (!ok) return res.status(404).json({ error: '文章不存在' });
   res.json({ ok: true });
@@ -209,6 +211,21 @@ app.get('/feed.xml', async (req, res) => {
 
 // ── 上传文件静态访问 ──
 app.use('/uploads', express.static('uploads'));
+
+// ── 上一篇 / 下一篇 ──
+app.get('/api/posts/:id/neighbors', async (req, res) => {
+  const post = await db.getPost(req.params.id);
+  if (!post) return res.status(404).json({ error: '文章不存在' });
+  res.json(await db.neighbors(req.params.id));
+});
+
+// ── 相关文章（同标签）──
+app.get('/api/posts/:id/related', async (req, res) => {
+  const post = await db.getPost(req.params.id);
+  if (!post) return res.status(404).json({ error: '文章不存在' });
+  const posts = await db.relatedPosts(req.params.id, post.tag, 3);
+  res.json({ posts });
+});
 
 // ── 统计 ──
 app.get('/api/stats', async (req, res) => {
