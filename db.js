@@ -50,7 +50,44 @@ const SCHEMA = {
       )`,
   settings: isPg
     ? `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT DEFAULT '')`
-    : `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT DEFAULT '')`
+    : `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT DEFAULT '')`,
+  checkins: isPg
+    ? `CREATE TABLE IF NOT EXISTS checkins (
+        date TEXT PRIMARY KEY,
+        run INTEGER DEFAULT 0, code INTEGER DEFAULT 0, write INTEGER DEFAULT 0
+      )`
+    : `CREATE TABLE IF NOT EXISTS checkins (
+        date TEXT PRIMARY KEY,
+        run INTEGER DEFAULT 0, code INTEGER DEFAULT 0, write INTEGER DEFAULT 0
+      )`,
+  messages: isPg
+    ? `CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        author TEXT DEFAULT '匿名',
+        content TEXT NOT NULL,
+        is_veteran INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT now()
+      )`
+    : `CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        author TEXT DEFAULT '匿名',
+        content TEXT NOT NULL,
+        is_veteran INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now','localtime'))
+      )`,
+  resonances: isPg
+    ? `CREATE TABLE IF NOT EXISTS resonances (
+        post_id INTEGER NOT NULL,
+        para_index INTEGER NOT NULL,
+        cnt INTEGER DEFAULT 0,
+        PRIMARY KEY (post_id, para_index)
+      )`
+    : `CREATE TABLE IF NOT EXISTS resonances (
+        post_id INTEGER NOT NULL,
+        para_index INTEGER NOT NULL,
+        cnt INTEGER DEFAULT 0,
+        PRIMARY KEY (post_id, para_index)
+      )`
 };
 
 // ── 种子文章（首次启动且库为空时写入）──
@@ -107,28 +144,46 @@ const SEED = [
 
 // ── 创建对应驱动 ──
 let driver;   // 'sqlite' | 'pg'
-let db;       // 底层连接对象
+let db;       // 底层连接对象（pg 断线时会整体替换）
 
 if (isPg) {
   const { Client } = require('pg');
-  db = new Client({
-    connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    keepAlive: true,                       // 保持 TCP 连接活跃
-    connectionTimeoutMillis: 15000,        // 连不上 15 秒内报错，不无限等待
-    query_timeout: 20000,                  // 单条查询 20 秒超时，防挂死
-    statement_timeout: 20000
-  });
-  db.connect();
-  // 防崩 + 自动重连：连接异常时记日志，5 秒后自动重连（云数据库休眠唤醒时会断连）
-  db.on('error', e => {
-    console.error('[db] Postgres 连接异常：', e.message);
-    setTimeout(() => {
-      db.connect().then(() => console.log('[db] 已自动重连')).catch(err => console.error('[db] 重连失败：', err.message));
-    }, 5000);
-  });
   driver = 'pg';
   console.log('[db] 使用云端 Postgres');
+  let reconnecting = false;
+  // 工厂：创建带错误自愈的客户端
+  function makePgClient() {
+    const c = new Client({
+      connectionString: DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      keepAlive: true,
+      connectionTimeoutMillis: 15000,
+      query_timeout: 20000,
+      statement_timeout: 20000
+    });
+    c.on('error', e => {
+      console.error('[db] Postgres 连接异常：', e.message);
+      scheduleReconnect();
+    });
+    return c;
+  }
+  function scheduleReconnect() {
+    if (reconnecting) return;
+    reconnecting = true;
+    setTimeout(async () => {
+      try {
+        const fresh = makePgClient();
+        await fresh.connect();
+        db = fresh;   // 替换整个连接（pg 客户端不可复用，必须新建）
+        console.log('[db] 已自动重连');
+      } catch (e) {
+        console.error('[db] 重连失败：', e.message);
+      }
+      reconnecting = false;
+    }, 5000);
+  }
+  db = makePgClient();
+  db.connect().catch(e => console.error('[db] 首次连接失败：', e.message));
 } else {
   const { DatabaseSync } = require('node:sqlite');
   db = new DatabaseSync(path.join(__dirname, 'blog.db'));
@@ -136,25 +191,37 @@ if (isPg) {
   console.log('[db] 使用本地 SQLite（blog.db）');
 }
 
-// ── 建表 ──
-if (driver === 'sqlite') {
-  db.exec(SCHEMA.posts);
-  db.exec(SCHEMA.comments);
-  db.exec(SCHEMA.settings);
-} else {
-  db.query(SCHEMA.posts);
-  db.query(SCHEMA.comments);
-  db.query(SCHEMA.settings);
-}
-
-// ── 旧库升级：给已有 posts 表补 cover_url 字段（已存在则跳过）──
-if (driver === 'sqlite') {
-  try { db.exec("ALTER TABLE posts ADD COLUMN cover_url TEXT DEFAULT ''"); } catch (e) { /* 字段已存在 */ }
-  try { db.exec('ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT 0'); } catch (e) { /* 字段已存在 */ }
-} else {
-  db.query("ALTER TABLE posts ADD COLUMN IF NOT EXISTS cover_url TEXT DEFAULT ''");
-  db.query('ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id INTEGER DEFAULT 0');
-}
+// ── 建表 + 旧库升级（异步初始化，全部 await，避免未处理异常）──
+(async () => {
+  const schemaSQL = [SCHEMA.posts, SCHEMA.comments, SCHEMA.settings, SCHEMA.checkins, SCHEMA.messages, SCHEMA.resonances];
+  const migrateSQL = [
+    "ALTER TABLE posts ADD COLUMN cover_url TEXT DEFAULT ''",
+    'ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT 0',
+    'ALTER TABLE resonances RENAME COLUMN count TO cnt'
+  ];
+  if (driver === 'sqlite') {
+    for (const sql of schemaSQL) { try { db.exec(sql); } catch (e) { console.error('[db] 建表失败：', e.message); } }
+    for (const sql of migrateSQL) { try { db.exec(sql); } catch (e) { /* 字段已存在或已迁移 */ } }
+  } else {
+    for (const sql of schemaSQL) { try { await db.query(sql); } catch (e) { console.error('[db] 建表失败：', e.message); } }
+    for (const sql of migrateSQL) { try { await db.query(sql); } catch (e) { /* 字段已存在或已迁移 */ } }
+  }
+  // 种子（pg 分支）：库为空时写入
+  if (driver === 'pg') {
+    try {
+      const r = await db.query('SELECT COUNT(*) AS n FROM posts');
+      if (Number(r.rows[0].n) === 0) {
+        for (const p of SEED) {
+          await db.query(
+            'INSERT INTO posts (title, tag, date, excerpt, content, cover) VALUES ($1,$2,$3,$4,$5,$6)',
+            [p.title, p.tag, p.date, p.excerpt, p.content, p.cover]
+          );
+        }
+        console.log('[db] 已写入 4 篇种子文章');
+      }
+    } catch (e) { console.error('[db] 种子失败：', e.message); }
+  }
+})();
 
 // ── 种子：库为空时写入 ──
 if (driver === 'sqlite') {
@@ -464,8 +531,74 @@ async function setSettings(obj) {
   }
 }
 
+// ── 打卡（重启格子）──
+async function getCheckins(month) {
+  const sql = "SELECT date, run, code, write FROM checkins WHERE date LIKE ? ORDER BY date";
+  if (driver === 'sqlite') return db.prepare(sql).all(month + '%');
+  const r = await db.query("SELECT date, run, code, write FROM checkins WHERE date LIKE $1 ORDER BY date", [month + '%']);
+  return r.rows;
+}
+async function upsertCheckin(date, run, code, write) {
+  if (driver === 'sqlite') {
+    db.prepare('INSERT INTO checkins (date, run, code, write) VALUES (?, ?, ?, ?) ON CONFLICT(date) DO UPDATE SET run=excluded.run, code=excluded.code, write=excluded.write')
+      .run(date, run ? 1 : 0, code ? 1 : 0, write ? 1 : 0);
+  } else {
+    await db.query('INSERT INTO checkins (date, run, code, write) VALUES ($1,$2,$3,$4) ON CONFLICT (date) DO UPDATE SET run=$2, code=$3, write=$4', [date, run ? 1 : 0, code ? 1 : 0, write ? 1 : 0]);
+  }
+}
+async function streakDays() {
+  const rows = await getCheckins('');
+  const set = new Set(rows.filter(r => (Number(r.run) || Number(r.code) || Number(r.write))).map(r => r.date));
+  let n = 0;
+  const d = new Date();
+  while (true) {
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (set.has(key)) { n++; d.setDate(d.getDate() - 1); } else break;
+  }
+  return n;
+}
+
+// ── 留言簿 ──
+async function listMessages(limit) {
+  const n = Number(limit || 50);
+  const sql = 'SELECT id, author, content, is_veteran, created_at FROM messages ORDER BY id DESC LIMIT ' + n;
+  if (driver === 'sqlite') return db.prepare(sql).all();
+  const r = await db.query(sql);
+  return r.rows;
+}
+async function addMessage(author, content, isVeteran) {
+  if (driver === 'sqlite') {
+    const info = db.prepare('INSERT INTO messages (author, content, is_veteran) VALUES (?, ?, ?)').run(author, content, isVeteran ? 1 : 0);
+    return Number(info.lastInsertRowid);
+  }
+  const r = await db.query('INSERT INTO messages (author, content, is_veteran) VALUES ($1,$2,$3) RETURNING id', [author, content, isVeteran ? 1 : 0]);
+  return Number(r.rows[0].id);
+}
+async function deleteMessage(id) {
+  if (driver === 'sqlite') { const i = db.prepare('DELETE FROM messages WHERE id = ?').run(id); return Number(i.changes) > 0; }
+  const r = await db.query('DELETE FROM messages WHERE id = $1', [id]);
+  return r.rowCount > 0;
+}
+
+// ── 段落共鸣 ──
+async function getResonances(postId) {
+  if (driver === 'sqlite') return db.prepare('SELECT para_index, cnt FROM resonances WHERE post_id = ?').all(postId);
+  const r = await db.query('SELECT para_index, cnt FROM resonances WHERE post_id = $1', [postId]);
+  return r.rows;
+}
+async function incrementResonance(postId, para) {
+  if (driver === 'sqlite') {
+    db.prepare('INSERT INTO resonances (post_id, para_index, cnt) VALUES (?, ?, 1) ON CONFLICT(post_id, para_index) DO UPDATE SET cnt = cnt + 1').run(postId, para);
+    return db.prepare('SELECT cnt FROM resonances WHERE post_id = ? AND para_index = ?').get(postId, para).cnt;
+  }
+  await db.query('INSERT INTO resonances (post_id, para_index, cnt) VALUES ($1,$2,1) ON CONFLICT (post_id, para_index) DO UPDATE SET cnt = resonances.cnt + 1', [postId, para]);
+  const r = await db.query('SELECT cnt FROM resonances WHERE post_id = $1 AND para_index = $2', [postId, para]);
+  return Number(r.rows[0].cnt);
+}
+
 module.exports = {
   listPosts, listPostsPage, countPosts, getPost, incrementViews, insertPost, updatePost, deletePost, incrementLikes, stats,
   listComments, getComment, insertComment, deleteComment, hotPosts, archive, adminStats, allComments, ping,
-  relatedPosts, neighbors, getSettings, setSettings, recentComments
+  relatedPosts, neighbors, getSettings, setSettings, recentComments,
+  getCheckins, upsertCheckin, streakDays, listMessages, addMessage, deleteMessage, getResonances, incrementResonance
 };

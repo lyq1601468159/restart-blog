@@ -54,12 +54,16 @@ function syncThemeIcons() {
 
 // ── 页面切换 ──
 function go(view, tab) {
-  ['home', 'post', 'tag', 'about', 'admin'].forEach(v => {
-    document.getElementById('view-' + v).hidden = v !== view;
+  ['home', 'post', 'tag', 'timeline', 'checkin', 'guestbook', 'about', 'admin'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.hidden = v !== view;
   });
   document.querySelectorAll('.nav-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.nav === view || ((view === 'post' || view === 'tag') && b.dataset.nav === 'home'));
   });
+  if (view === 'timeline') renderTimeline();
+  if (view === 'checkin') renderCheckin();
+  if (view === 'guestbook') renderGuestbook();
   if (view === 'admin') adminTab(tab || 'write');
   if (view === 'home' && location.hash) location.hash = '';
   window.scrollTo(0, 0);
@@ -366,6 +370,8 @@ async function openPost(id) {
           '</button>' +
           '<button class="tool-btn" onclick="copyLink(' + post.id + ')">复制链接</button>' +
           '<button class="tool-btn" onclick="copyMarkdown()">复制原文</button>' +
+          '<button class="tool-btn" onclick="downloadMd()">下载原文</button>' +
+          '<button class="tool-btn" onclick="toggleSpeak()">听一听</button>' +
           '<button class="tool-btn" onclick="toggleImmersive()">沉浸阅读</button>' +
           '<button class="tool-btn" onclick="window.print()">打印本文</button>' +
           '<button class="tool-btn" onclick="fontSize(-1)" title="减小字号">A−</button>' +
@@ -387,6 +393,17 @@ async function openPost(id) {
         '</div>' +
       '</article>';
     window.__currentContent = post.content;
+    // 段落共鸣按钮
+    let pi = 0;
+    box.querySelectorAll('.post-content p').forEach(p => {
+      p.setAttribute('data-para', pi);
+      const row = document.createElement('div');
+      row.className = 'resonate-row';
+      row.innerHTML = '<button class="resonate-btn" data-para="' + pi + '" onclick="resonate(' + post.id + ',' + pi + ',this)">共鸣 <span>0</span></button>';
+      p.after(row);
+      pi++;
+    });
+    loadResonances(post.id);
     loadComments(post.id);
     buildToc();
     loadNeighbors(post.id);
@@ -567,6 +584,173 @@ function updateSEO(post) {
   document.querySelector('meta[name="description"]').setAttribute('content', post.excerpt || '');
   document.querySelector('meta[property="og:title"]').setAttribute('content', post.title);
   document.querySelector('meta[property="og:description"]').setAttribute('content', post.excerpt || '');
+}
+
+// ── 创新功能：时间线 / 打卡 / 留言簿 / 共鸣 / 朗读 / 下载 / 夜跑 ──
+async function renderTimeline() {
+  const box = document.getElementById('timeline-box');
+  try {
+    const { start_date, posts } = await api('/api/timeline');
+    const d0 = new Date(start_date + 'T00:00:00');
+    const dayN = Math.max(1, Math.floor((Date.now() - d0.getTime()) / 86400000) + 1);
+    const milestones = [
+      { day: 1, label: '拿到《重启手册》，写下第一行字' },
+      { day: 7, label: '第一个网站上线，学会 Ctrl+S' },
+      { day: 30, label: '坚持 30 天（尚未到达）' },
+      { day: 100, label: '100 天挑战（尚未到达）' }
+    ];
+    const nodes = [];
+    nodes.push('<div class="tl-node"><span class="tl-dot milestone"></span><div class="tl-card"><div class="tl-date">' + escapeHtml(start_date) + ' · 起点</div><div class="tl-title">从躺平到站直的第 0 天</div><div class="tl-desc">那一天，我决定不再躺下去。</div></div></div>');
+    milestones.forEach(m => {
+      if (m.day <= dayN) {
+        nodes.push('<div class="tl-node"><span class="tl-dot milestone"></span><div class="tl-card"><div class="tl-date">重启第 ' + m.day + ' 天</div><div class="tl-title">' + escapeHtml(m.label) + '</div></div></div>');
+      }
+    });
+    [...posts].sort((a, b) => (a.date > b.date ? 1 : -1)).forEach(p => {
+      nodes.push('<div class="tl-node"><span class="tl-dot"></span><div class="tl-card"><div class="tl-date">' + escapeHtml(p.date) + ' · 文章</div><div class="tl-title" onclick="openPost(' + p.id + ')">' + escapeHtml(p.title) + '</div></div></div>');
+    });
+    nodes.push('<div class="tl-node"><span class="tl-dot milestone"></span><div class="tl-card"><div class="tl-date">今天 · 重启第 ' + dayN + ' 天</div><div class="tl-title">故事还在继续</div><div class="tl-desc">下一篇文章，等你来写。</div></div></div>');
+    box.innerHTML = '<div class="timeline">' + nodes.join('') + '</div>';
+    document.getElementById('tl-kicker').textContent = 'TIMELINE · 重启第 ' + dayN + ' 天';
+  } catch (e) { box.innerHTML = '<p class="empty-state">加载失败：' + escapeHtml(e.message) + '</p>'; }
+}
+
+let ckState = { date: '', run: false, code: false, write: false };
+async function renderCheckin() {
+  const now = new Date();
+  const month = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const today = month + '-' + String(now.getDate()).padStart(2, '0');
+  try {
+    const { days } = await api('/api/checkins?month=' + month);
+    const map = {};
+    days.forEach(d => { map[d.date] = (Number(d.run) ? 1 : 0) + (Number(d.code) ? 1 : 0) + (Number(d.write) ? 1 : 0); });
+    const startPad = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    let cells = '';
+    for (let i = 0; i < startPad; i++) cells += '<span></span>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = month + '-' + String(d).padStart(2, '0');
+      cells += '<div class="ck-cell l' + (map[key] || 0) + (key === today ? ' today' : '') + '" title="' + key + '"></div>';
+    }
+    document.getElementById('checkin-grid').innerHTML = cells;
+    const td = days.find(d => d.date === today) || { run: 0, code: 0, write: 0 };
+    ckState = { date: today, run: !!Number(td.run), code: !!Number(td.code), write: !!Number(td.write) };
+    syncCkButtons();
+    const { streak } = await api('/api/checkins/streak');
+    document.getElementById('streak-num').textContent = streak;
+  } catch (e) { /* 忽略 */ }
+}
+function syncCkButtons() {
+  ['run', 'code', 'write'].forEach(k => {
+    const b = document.getElementById('ck-' + k);
+    if (b) b.classList.toggle('on', ckState[k]);
+  });
+}
+async function toggleCheckin(k) {
+  ckState[k] = !ckState[k];
+  syncCkButtons();
+  try {
+    await api('/api/checkins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ckState) });
+    const { streak } = await api('/api/checkins/streak');
+    document.getElementById('streak-num').textContent = streak;
+    renderCheckin();
+    toast(k === 'run' ? '夜跑打卡 ✓' : k === 'code' ? '编程打卡 ✓' : '写作打卡 ✓');
+  } catch (e) { toast('打卡失败：' + e.message); }
+}
+
+async function renderGuestbook() {
+  const list = document.getElementById('guestbook-list');
+  try {
+    const { messages } = await api('/api/messages');
+    list.innerHTML = messages.length ? messages.map(m =>
+      '<div class="gb-item"><div class="gb-head"><span class="gb-author">' + escapeHtml(m.author || '匿名') + '</span>' +
+      (Number(m.is_veteran) ? '<span class="vet-badge">退伍兵</span>' : '') +
+      '<span class="gb-time">' + fmtTime(m.created_at) + '</span>' +
+      '<button class="gb-del" onclick="deleteGuestbook(' + m.id + ')">删除</button>' +
+      '</div><div class="gb-content">' + escapeHtml(m.content) + '</div></div>'
+    ).join('') : '<p class="comment-empty">还没有留言，来写下第一条吧。</p>';
+  } catch (e) { list.innerHTML = '<p class="comment-empty">加载失败</p>'; }
+}
+async function submitGuestbook() {
+  const content = document.getElementById('gb-content').value.trim();
+  if (!content) { toast('留言内容不能为空'); return; }
+  try {
+    await api('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      author: document.getElementById('gb-author').value.trim(),
+      content,
+      is_veteran: document.getElementById('gb-vet').checked
+    }) });
+    document.getElementById('gb-content').value = '';
+    document.getElementById('gb-vet').checked = false;
+    toast('留言成功');
+    renderGuestbook();
+  } catch (e) { toast('留言失败：' + e.message); }
+}
+async function deleteGuestbook(id) {
+  if (!confirm('删除这条留言？')) return;
+  try { await api('/api/messages/' + id, { method: 'DELETE', headers: authHeaders() }); toast('已删除'); renderGuestbook(); }
+  catch (e) { toast('删除失败：' + e.message); }
+}
+
+async function loadResonances(postId) {
+  try {
+    const { list } = await api('/api/resonances/' + postId);
+    document.querySelectorAll('.resonate-btn').forEach(btn => {
+      const p = Number(btn.dataset.para);
+      if (list[p]) {
+        btn.querySelector('span').textContent = list[p];
+        if (localStorage.getItem('rs-' + postId + '-' + p)) btn.classList.add('on');
+      }
+    });
+  } catch (e) { /* 忽略 */ }
+}
+async function resonate(postId, para, btn) {
+  const key = 'rs-' + postId + '-' + para;
+  if (localStorage.getItem(key)) { toast('这句话你已经共鸣过了'); return; }
+  try {
+    const r = await api('/api/resonances/' + postId, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ para }) });
+    btn.querySelector('span').textContent = r.count;
+    btn.classList.add('on');
+    localStorage.setItem(key, '1');
+    toast('共鸣 +1');
+  } catch (e) { toast('操作失败：' + e.message); }
+}
+
+let __speaking = false;
+function toggleSpeak() {
+  const el = document.querySelector('.post-content');
+  if (!el) return;
+  if (__speaking) {
+    speechSynthesis.cancel();
+    __speaking = false;
+    toast('已停止朗读');
+    return;
+  }
+  if (!('speechSynthesis' in window)) { toast('当前浏览器不支持朗读'); return; }
+  const u = new SpeechSynthesisUtterance(el.innerText);
+  u.lang = 'zh-CN';
+  u.rate = 0.95;
+  u.onend = () => { __speaking = false; toast('朗读结束'); };
+  speechSynthesis.speak(u);
+  __speaking = true;
+  toast('开始朗读，再点一次停止');
+}
+
+function downloadMd() {
+  if (!window.__currentContent) { toast('没有可下载的内容'); return; }
+  const title = (document.querySelector('.post-title-big') || {}).textContent || '文章';
+  const blob = new Blob([window.__currentContent], { type: 'text/markdown;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = title + '.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Markdown 已下载');
+}
+
+function toggleNightrun() {
+  document.body.classList.toggle('nightrun');
+  localStorage.setItem('blog-nightrun', document.body.classList.contains('nightrun') ? '1' : '0');
 }
 
 // ── 评论 ──
@@ -986,6 +1170,8 @@ window.addEventListener('hashchange', () => {
   if (m && Number(m[1]) !== currentPostId) openPost(Number(m[1]));
 });
 initTheme();
+// 夜跑模式恢复
+if (localStorage.getItem('blog-nightrun') === '1') document.body.classList.add('nightrun');
 // 视图偏好
 if (localStorage.getItem('blog-view') === 'list') document.getElementById('post-grid').classList.add('list-view');
 // 键盘快捷键：/ 搜索 · ← → 上一篇下一篇 · m 主题 · f 沉浸 · Esc 退出
@@ -998,6 +1184,7 @@ window.addEventListener('keydown', e => {
   else if (k === 'arrowright' && window.__neighbors && window.__neighbors.next) openPost(window.__neighbors.next.id);
   else if (k === 'm') toggleTheme();
   else if (k === 'f') toggleImmersive();
+  else if (k === 'n') toggleNightrun();
   else if (e.key === 'Escape') document.body.classList.remove('immersive');
 });
 initReveal();

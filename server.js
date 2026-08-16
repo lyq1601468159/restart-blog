@@ -271,6 +271,62 @@ app.get('/sitemap.xml', async (req, res) => {
   );
 });
 
+// ── 打卡：按月份取 ──
+app.get('/api/checkins', async (req, res) => {
+  const month = String(req.query.month || new Date().toISOString().slice(0, 7));
+  res.json({ days: await db.getCheckins(month) });
+});
+
+// ── 打卡：记录当天 ──
+app.post('/api/checkins', async (req, res) => {
+  const b = req.body || {};
+  const date = String(b.date || new Date().toISOString().slice(0, 10));
+  await db.upsertCheckin(date, !!b.run, !!b.code, !!b.write);
+  res.json({ ok: true });
+});
+
+// ── 打卡：连续天数 ──
+app.get('/api/checkins/streak', async (req, res) => {
+  res.json({ streak: await db.streakDays() });
+});
+
+// ── 留言簿 ──
+app.get('/api/messages', async (req, res) => {
+  res.json({ messages: await db.listMessages(50) });
+});
+app.post('/api/messages', async (req, res) => {
+  const content = ((req.body || {}).content || '').trim().slice(0, 300);
+  if (!content) return res.status(400).json({ error: '留言内容不能为空' });
+  const author = ((req.body || {}).author || '').trim().slice(0, 20);
+  const id = await db.addMessage(author || '匿名', content, !!((req.body || {}).is_veteran));
+  res.json({ ok: true, id });
+});
+app.delete('/api/messages/:id', requireAdmin, async (req, res) => {
+  const ok = await db.deleteMessage(req.params.id);
+  if (!ok) return res.status(404).json({ error: '留言不存在' });
+  res.json({ ok: true });
+});
+
+// ── 段落共鸣 ──
+app.get('/api/resonances/:postId', async (req, res) => {
+  const rows = await db.getResonances(req.params.postId);
+  const list = {};
+  rows.forEach(r => { list[Number(r.para_index)] = Number(r.cnt); });
+  res.json({ list });
+});
+app.post('/api/resonances/:postId', async (req, res) => {
+  const para = Math.max(0, Number((req.body || {}).para) || 0);
+  const count = await db.incrementResonance(req.params.postId, para);
+  res.json({ ok: true, count });
+});
+
+// ── 时间线数据 ──
+app.get('/api/timeline', async (req, res) => {
+  const settings = await db.getSettings();
+  const posts = await db.listPosts();
+  res.json({ start_date: settings.start_date, posts });
+});
+
 // ── 统计 ──
 app.get('/api/stats', async (req, res) => {
   res.json(await db.stats());

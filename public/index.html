@@ -24,6 +24,9 @@
       </button>
       <nav class="tb-nav">
         <button class="nav-btn active" data-nav="home" onclick="go('home')">首页</button>
+        <button class="nav-btn" data-nav="timeline" onclick="go('timeline')">时间线</button>
+        <button class="nav-btn" data-nav="checkin" onclick="go('checkin')">打卡</button>
+        <button class="nav-btn" data-nav="guestbook" onclick="go('guestbook')">留言</button>
         <button class="nav-btn" data-nav="about" onclick="go('about')">关于</button>
         <button class="nav-btn" data-nav="admin" onclick="go('admin')">管理</button>
         <a class="icon-link" href="/feed.xml" target="_blank" title="RSS 订阅" aria-label="RSS">
@@ -131,6 +134,51 @@
           </div>
         </aside>
       </div>
+    </section>
+
+    <!-- ═══ 时间线页 ═══ -->
+    <section id="view-timeline" class="view" hidden>
+      <button class="back-link" onclick="go('home')">← 返回首页</button>
+      <p class="kicker" id="tl-kicker">TIMELINE</p>
+      <h1 class="page-title">从躺平到站直</h1>
+      <div id="timeline-box"><div class="skeleton" style="height:260px"></div></div>
+    </section>
+
+    <!-- ═══ 打卡页 ═══ -->
+    <section id="view-checkin" class="view" hidden>
+      <button class="back-link" onclick="go('home')">← 返回首页</button>
+      <p class="kicker" id="ck-kicker">CHECK-IN</p>
+      <div class="checkin-head">
+        <h1 class="page-title">重启格子</h1>
+        <div class="streak-chip" id="streak-chip">连续 <b id="streak-num">0</b> 天</div>
+      </div>
+      <div class="checkin-card panel">
+        <div class="side-title">今天做了什么（点击切换）</div>
+        <div class="checkin-today">
+          <button class="ck-btn" id="ck-run" onclick="toggleCheckin('run')">🏃 夜跑</button>
+          <button class="ck-btn" id="ck-code" onclick="toggleCheckin('code')">💻 编程</button>
+          <button class="ck-btn" id="ck-write" onclick="toggleCheckin('write')">✍️ 写作</button>
+        </div>
+        <div class="checkin-grid" id="checkin-grid"></div>
+        <p class="form-hint">绿色越深 = 当天完成的项目越多。数据存在数据库里。</p>
+      </div>
+    </section>
+
+    <!-- ═══ 留言簿 ═══ -->
+    <section id="view-guestbook" class="view" hidden>
+      <button class="back-link" onclick="go('home')">← 返回首页</button>
+      <p class="kicker" id="gb-kicker">GUESTBOOK</p>
+      <h1 class="page-title">战友留言簿</h1>
+      <p class="hero-sub" style="margin-bottom:20px">不管你是退伍兵、还是正在迷茫的人，留一句话在这里——这面墙留给每一个想重新开始的人。</p>
+      <div class="guestbook-form panel">
+        <input id="gb-author" placeholder="昵称（可留空）" maxlength="20">
+        <textarea id="gb-content" rows="3" placeholder="想说的话……（最多 300 字）" maxlength="300"></textarea>
+        <div class="guestbook-actions">
+          <label class="vet-label"><input type="checkbox" id="gb-vet"> 我是退伍兵</label>
+          <button class="btn-primary" onclick="submitGuestbook()">留言</button>
+        </div>
+      </div>
+      <div class="guestbook-list" id="guestbook-list"><div class="skeleton" style="height:120px"></div></div>
     </section>
 
     <!-- ═══ 标签页 ═══ -->
@@ -269,6 +317,7 @@
   <footer class="footer">
     <p id="footer-text">RESTART·LOG — 从躺平到站直 · 前端 + Express + SQLite/Postgres 全栈闭环</p>
     <p class="footer-sub">手写的每一行代码，都是把自己重新焊回生活里的铆钉。</p>
+    <button class="nightrun-link" onclick="toggleNightrun()">夜跑模式</button>
   </footer>
 
   <button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到顶部">
