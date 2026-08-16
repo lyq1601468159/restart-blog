@@ -192,7 +192,7 @@ function renderFeed() {
     card.className = 'post-card reveal';
     card.style.animationDelay = (i * 60) + 'ms';
     card.innerHTML =
-      '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill" onclick="event.stopPropagation();goTag(\'' + escapeHtml(p.tag || '未分类') + '\')">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
+      '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill" onclick="event.stopPropagation();goTag(\'' + escapeHtml(p.tag || '未分类') + '\')">' + escapeHtml(p.tag || '未分类') + '</span>' + (p.cover_url ? '<span class="cover-inner-title">' + escapeHtml(p.title) + '</span>' : '') + '</div>' +
       '<div class="post-body">' +
         '<div class="post-date">' + escapeHtml(p.date) + ' · 阅读 ' + p.views + '</div>' +
         '<div class="post-title">' + highlight(p.title) + '</div>' +
@@ -265,7 +265,7 @@ function renderTagView() {
     const card = document.createElement('button');
     card.className = 'post-card reveal';
     card.innerHTML =
-      '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill">' + escapeHtml(p.tag || '未分类') + '</span></div>' +
+      '<div class="post-cover cover-' + p.cover + (p.cover_url ? ' has-img' : '') + '"' + (p.cover_url ? ' style="background-image:url(\'' + p.cover_url + '\')"' : '') + '><span class="pill">' + escapeHtml(p.tag || '未分类') + '</span>' + (p.cover_url ? '<span class="cover-inner-title">' + escapeHtml(p.title) + '</span>' : '') + '</div>' +
       '<div class="post-body">' +
         '<div class="post-date">' + escapeHtml(p.date) + ' · 阅读 ' + p.views + '</div>' +
         '<div class="post-title">' + escapeHtml(p.title) + '</div>' +
@@ -673,6 +673,7 @@ async function editPost(id) {
     document.getElementById('f-content').value = post.content;
     document.getElementById('f-cover').value = String(post.cover);
     document.getElementById('f-cover-url').value = post.cover_url || '';
+    updateCoverPreview();
     document.getElementById('btn-submit').textContent = '保存修改';
     document.getElementById('edit-hint').textContent = '正在编辑：《' + post.title + '》';
     document.getElementById('form-error').hidden = true;
@@ -690,6 +691,8 @@ function resetForm() {
   document.getElementById('edit-hint').textContent = '';
   document.getElementById('form-error').hidden = true;
   document.getElementById('upload-status').textContent = '';
+  document.getElementById('use-as-cover').hidden = true;
+  updateCoverPreview();
 }
 
 async function submitPost() {
@@ -740,9 +743,11 @@ async function uploadImage(input) {
     const res = await fetch('/api/upload', { method: 'POST', headers: authHeaders(), body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '上传失败');
+    window.__lastUploadUrl = data.url;
+    document.getElementById('use-as-cover').hidden = false;
     const ta = document.getElementById('f-content');
     ta.value += (ta.value ? '\n' : '') + '![图片](' + data.url + ')\n';
-    st.textContent = '已插入图片（可继续编辑）';
+    st.textContent = '已插入正文，可点"设为封面"';
     toast('图片已上传');
   } catch (e) {
     st.textContent = '';
@@ -755,6 +760,29 @@ function insertImageUrl() {
   if (!url) return;
   const ta = document.getElementById('f-content');
   ta.value += (ta.value ? '\n' : '') + '![图片](' + url + ')\n';
+}
+
+// ── 封面实时预览 / 设为封面 ──
+function updateCoverPreview() {
+  const pv = document.getElementById('cover-preview');
+  if (!pv) return;
+  const url = document.getElementById('f-cover-url').value.trim();
+  const cover = document.getElementById('f-cover').value;
+  const tag = document.getElementById('f-tag').value.trim();
+  const title = document.getElementById('f-title').value.trim();
+  pv.className = 'cover-preview cover-' + cover + (url ? ' has-img' : '');
+  pv.style.backgroundImage = url ? "url('" + url + "')" : '';
+  pv.style.backgroundSize = 'cover';
+  pv.style.backgroundPosition = 'center';
+  pv.querySelector('.cp-pill').textContent = tag || '未分类';
+  pv.querySelector('.cp-title').textContent = title || '封面预览';
+}
+function useAsCover() {
+  if (!window.__lastUploadUrl) return;
+  document.getElementById('f-cover-url').value = window.__lastUploadUrl;
+  document.getElementById('use-as-cover').hidden = true;
+  updateCoverPreview();
+  toast('已设为封面');
 }
 
 // ── 管理后台各面板 ──

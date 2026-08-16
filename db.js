@@ -224,6 +224,11 @@ async function incrementViews(id) {
 
 // 发布文章
 async function insertPost(p) {
+  // 自动封面：没填封面时，提取正文第一张图作为封面
+  if (!p.coverUrl) {
+    const m = (p.content || '').match(/!\[[^\]]*\]\(([^)\s]+)\)/);
+    p.coverUrl = m ? m[1] : '';
+  }
   if (driver === 'sqlite') {
     const info = db.prepare(
       'INSERT INTO posts (title, tag, date, excerpt, content, cover, cover_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -331,6 +336,11 @@ async function deleteComment(id) {
 
 // 编辑文章
 async function updatePost(id, p) {
+  // 自动封面：没填封面时，提取正文第一张图作为封面
+  if (!p.coverUrl) {
+    const m = (p.content || '').match(/!\[[^\]]*\]\(([^)\s]+)\)/);
+    p.coverUrl = m ? m[1] : '';
+  }
   if (driver === 'sqlite') {
     const info = db.prepare(
       'UPDATE posts SET title=?, tag=?, date=?, excerpt=?, content=?, cover=?, cover_url=? WHERE id=?'

@@ -188,7 +188,7 @@
             <label class="field"><span>标签</span><input type="text" id="f-tag" placeholder="比如：编程日记"></label>
             <label class="field"><span>日期</span><input type="text" id="f-date" placeholder="留空自动今天"></label>
             <label class="field"><span>封面</span>
-              <select id="f-cover">
+              <select id="f-cover" onchange="updateCoverPreview()">
                 <option value="0">青绿</option>
                 <option value="1">琥珀</option>
                 <option value="2">罗兰</option>
@@ -196,7 +196,11 @@
               </select>
             </label>
           </div>
-          <label class="field"><span>封面图链接（可选：先用"上传图片"拿到链接填进来，或粘贴外链图片地址）</span><input type="text" id="f-cover-url" placeholder="/uploads/xxx.png 或 https://..."></label>
+          <label class="field"><span>封面图链接（可选：先用"上传图片"拿到链接填进来，或粘贴外链图片地址）</span><input type="text" id="f-cover-url" oninput="updateCoverPreview()" placeholder="/uploads/xxx.png 或 https://..."></label>
+          <div class="cover-preview cover-0" id="cover-preview">
+            <span class="cp-pill">未分类</span>
+            <span class="cp-title">封面预览</span>
+          </div>
           <label class="field"><span>摘要（留空自动取正文前 60 字）</span><textarea id="f-excerpt" rows="2" placeholder="列表页显示的一句话"></textarea></label>
           <label class="field">
             <span>正文 *（支持：空行分段、<code># 小标题</code>、<code>```代码块```</code>、<code>![说明](/uploads/图.png)</code>、<code>**加粗**</code>、<code>&gt; 引用</code>、<code>- 列表</code>）</span>
@@ -206,6 +210,7 @@
             <button type="button" class="btn-ghost" onclick="document.getElementById('file-input').click()">上传图片</button>
             <input type="file" id="file-input" accept="image/*" hidden onchange="uploadImage(this)">
             <button type="button" class="btn-ghost" onclick="insertImageUrl()">插入图片链接</button>
+            <button type="button" class="btn-ghost" id="use-as-cover" onclick="useAsCover()" hidden>设为封面</button>
             <span class="form-hint" id="upload-status"></span>
           </div>
           <p class="form-error" id="form-error" hidden></p>
