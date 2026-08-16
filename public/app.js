@@ -11,6 +11,7 @@ let sortMode = 'date';   // date | likes | views
 let editId = null;       // 正在编辑的文章 id
 let currentPostId = null;
 let HEADINGS = [];       // 当前文章的目录结构（由正文标题生成）
+let hasMorePosts = false;
 
 // ── 工具 ──
 async function api(path, options) {
@@ -105,8 +106,10 @@ function animateNum(el, n) {
 
 async function loadPosts() {
   try {
-    const { posts } = await api('/api/posts');
+    const { posts, hasMore } = await api('/api/posts?limit=6&offset=0');
     POSTS = posts;
+    hasMorePosts = hasMore;
+    document.getElementById('load-more-wrap').hidden = !hasMore;
     // 动态填充筛选下拉框
     const tags = [...new Set(posts.map(p => p.tag).filter(Boolean))];
     const sel = document.getElementById('filter-select');
@@ -120,6 +123,43 @@ async function loadPosts() {
     document.getElementById('empty-state').innerHTML =
       '<p>加载失败：' + escapeHtml(e.message) + '</p><button class="btn-primary" onclick="loadPosts()">重试</button>';
   }
+}
+
+async function loadMore() {
+  const btn = document.getElementById('load-more-btn');
+  btn.disabled = true;
+  btn.textContent = '加载中…';
+  try {
+    const { posts, hasMore } = await api('/api/posts?limit=6&offset=' + POSTS.length);
+    POSTS = POSTS.concat(posts);
+    hasMorePosts = hasMore;
+    document.getElementById('load-more-wrap').hidden = !hasMore;
+    renderFeed();
+    observeReveals(document.getElementById('post-grid'));
+  } catch (e) { toast('加载失败：' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '加载更多文章'; }
+}
+
+// ── 视图切换：卡片 / 列表 ──
+function toggleView() {
+  const grid = document.getElementById('post-grid');
+  const listMode = grid.classList.toggle('list-view');
+  localStorage.setItem('blog-view', listMode ? 'list' : 'card');
+}
+
+// ── 沉浸阅读 ──
+function toggleImmersive() {
+  document.body.classList.toggle('immersive');
+  window.scrollTo(0, 0);
+}
+
+// ── 复制 Markdown 原文 ──
+function copyMarkdown() {
+  if (!window.__currentContent) { toast('没有可复制的内容'); return; }
+  navigator.clipboard.writeText(window.__currentContent).then(
+    () => toast('Markdown 原文已复制'),
+    () => toast('复制失败，请手动选择复制')
+  );
 }
 
 // 搜索高亮
@@ -325,6 +365,8 @@ async function openPost(id) {
             '<span id="star-count">点赞 ' + post.likes + '</span>' +
           '</button>' +
           '<button class="tool-btn" onclick="copyLink(' + post.id + ')">复制链接</button>' +
+          '<button class="tool-btn" onclick="copyMarkdown()">复制原文</button>' +
+          '<button class="tool-btn" onclick="toggleImmersive()">沉浸阅读</button>' +
           '<button class="tool-btn" onclick="window.print()">打印本文</button>' +
           '<button class="tool-btn" onclick="fontSize(-1)" title="减小字号">A−</button>' +
           '<button class="tool-btn" onclick="fontSize(1)" title="增大字号">A+</button>' +
@@ -344,6 +386,7 @@ async function openPost(id) {
           '</div>' +
         '</div>' +
       '</article>';
+    window.__currentContent = post.content;
     loadComments(post.id);
     buildToc();
     loadNeighbors(post.id);
@@ -405,7 +448,9 @@ function buildToc() {
 
 async function loadNeighbors(id) {
   try {
-    const { prev, next } = await api('/api/posts/' + id + '/neighbors');
+    const nb = await api('/api/posts/' + id + '/neighbors');
+    window.__neighbors = nb;   // 供键盘 ← → 快捷键使用
+    const { prev, next } = nb;
     const box = document.getElementById('post-box');
     box.insertAdjacentHTML('beforeend',
       '<div class="prevnext">' +
@@ -476,6 +521,15 @@ function applySettings(s) {
   }
   const ft = document.getElementById('footer-text');
   if (ft) ft.textContent = s.site_footer;
+  // 重启天数计数器
+  const dc = document.getElementById('day-counter');
+  if (dc && s.start_date) {
+    const d0 = new Date(s.start_date + 'T00:00:00');
+    if (!isNaN(d0.getTime())) {
+      const days = Math.max(1, Math.floor((Date.now() - d0.getTime()) / 86400000) + 1);
+      dc.textContent = '重启第 ' + days + ' 天 · A VETERAN\'S CODING DIARY · 2026';
+    }
+  }
   document.documentElement.style.setProperty('--accent', s.site_accent);
 }
 async function loadSettings() {
@@ -488,6 +542,7 @@ async function loadSettings() {
     if (g('set-accent')) g('set-accent').value = s.site_accent;
     if (g('set-footer')) g('set-footer').value = s.site_footer;
     if (g('set-notice')) g('set-notice').value = s.site_notice || '';
+    if (g('set-start-date')) g('set-start-date').value = s.start_date || '';
   } catch (e) { /* 忽略 */ }
 }
 async function saveSettings() {
@@ -496,7 +551,8 @@ async function saveSettings() {
     site_tagline: document.getElementById('set-tagline').value.trim(),
     site_accent: document.getElementById('set-accent').value,
     site_footer: document.getElementById('set-footer').value.trim(),
-    site_notice: document.getElementById('set-notice').value.trim()
+    site_notice: document.getElementById('set-notice').value.trim(),
+    start_date: document.getElementById('set-start-date').value.trim() || '2026-08-09'
   };
   try {
     const s = await api('/api/settings', { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) });
@@ -902,6 +958,20 @@ window.addEventListener('hashchange', () => {
   if (m && Number(m[1]) !== currentPostId) openPost(Number(m[1]));
 });
 initTheme();
+// 视图偏好
+if (localStorage.getItem('blog-view') === 'list') document.getElementById('post-grid').classList.add('list-view');
+// 键盘快捷键：/ 搜索 · ← → 上一篇下一篇 · m 主题 · f 沉浸 · Esc 退出
+window.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  const k = e.key.toLowerCase();
+  if (k === '/') { e.preventDefault(); go('home'); setTimeout(() => { const s = document.getElementById('search-input'); if (s) s.focus(); }, 80); }
+  else if (k === 'arrowleft' && window.__neighbors && window.__neighbors.prev) openPost(window.__neighbors.prev.id);
+  else if (k === 'arrowright' && window.__neighbors && window.__neighbors.next) openPost(window.__neighbors.next.id);
+  else if (k === 'm') toggleTheme();
+  else if (k === 'f') toggleImmersive();
+  else if (e.key === 'Escape') document.body.classList.remove('immersive');
+});
 initReveal();
 initCursorGlow();
 observeReveals(document);

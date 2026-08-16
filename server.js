@@ -55,10 +55,17 @@ function requireAdmin(req, res, next) {
   res.status(401).json({ error: '令牌不对，无权操作' });
 }
 
-// ── 文章列表 ──
+// ── 文章列表（支持分页：?limit=6&offset=0；不带参数返回全部）──
 app.get('/api/posts', async (req, res) => {
-  const posts = await db.listPosts();
-  res.json({ posts });
+  const limit = Number(req.query.limit) || 0;
+  if (!limit) {
+    res.json({ posts: await db.listPosts(), total: await db.countPosts(), hasMore: false });
+    return;
+  }
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const posts = await db.listPostsPage(limit, offset);
+  const total = await db.countPosts();
+  res.json({ posts, total, hasMore: offset + posts.length < total });
 });
 
 // ── 文章详情 + 阅读数 +1 ──

@@ -193,6 +193,22 @@ async function listPosts() {
   return r.rows;
 }
 
+// 分页列表
+async function listPostsPage(limit, offset) {
+  const n = Number(limit) || 6, o = Number(offset) || 0;
+  const sql = 'SELECT id, title, tag, date, excerpt, likes, views, cover, cover_url FROM posts ORDER BY id DESC LIMIT ' + n + ' OFFSET ' + o;
+  if (driver === 'sqlite') return db.prepare(sql).all();
+  const r = await db.query(sql);
+  return r.rows;
+}
+
+// 文章总数
+async function countPosts() {
+  if (driver === 'sqlite') return db.prepare('SELECT COUNT(*) AS n FROM posts').get().n;
+  const r = await db.query('SELECT COUNT(*) AS n FROM posts');
+  return Number(r.rows[0].n);
+}
+
 // 文章详情
 async function getPost(id) {
   if (driver === 'sqlite') return db.prepare('SELECT * FROM posts WHERE id = ?').get(id) || null;
@@ -411,7 +427,8 @@ const SETTINGS_DEFAULTS = {
   site_tagline: '从躺平到站直：一个退伍兵的编程日记。',
   site_accent: '#0d9488',
   site_footer: 'RESTART·LOG — 从躺平到站直 · 前端 + Express + SQLite/Postgres 全栈闭环',
-  site_notice: ''
+  site_notice: '',
+  start_date: '2026-08-09'
 };
 
 async function getSettings() {
@@ -438,7 +455,7 @@ async function setSettings(obj) {
 }
 
 module.exports = {
-  listPosts, getPost, incrementViews, insertPost, updatePost, deletePost, incrementLikes, stats,
+  listPosts, listPostsPage, countPosts, getPost, incrementViews, insertPost, updatePost, deletePost, incrementLikes, stats,
   listComments, getComment, insertComment, deleteComment, hotPosts, archive, adminStats, allComments, ping,
   relatedPosts, neighbors, getSettings, setSettings, recentComments
 };

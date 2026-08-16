@@ -225,6 +225,37 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 }
 .sort-btn:hover { color: var(--text); }
 .sort-btn.active { color: var(--accent); border-color: var(--stroke); background: var(--bg-soft); }
+.view-toggle {
+  display:inline-flex; align-items:center; justify-content:center;
+  width: 32px; height: 32px; color: var(--muted); cursor:pointer;
+  background: var(--bg-soft); border: 1px solid var(--stroke); border-radius: 8px;
+}
+.view-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 列表视图 */
+.post-grid.list-view { grid-template-columns: 1fr; }
+.post-grid.list-view .post-card:first-child { grid-column: auto; }
+.post-grid.list-view .post-card:first-child .post-cover { height: auto; min-height: 110px; }
+.post-grid.list-view .post-card:first-child .post-title { font-size: 17.5px; }
+.post-grid.list-view .post-card { display: flex; align-items: stretch; }
+.post-grid.list-view .post-cover { width: 220px; height: auto; min-height: 110px; flex: none; }
+.post-grid.list-view .post-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+@media (max-width: 700px) {
+  .post-grid.list-view .post-card { flex-direction: column; }
+  .post-grid.list-view .post-cover { width: 100%; height: 130px; }
+}
+
+/* 加载更多 */
+.load-more-wrap { text-align: center; margin-top: 22px; }
+.load-more-wrap .btn-ghost { padding: 10px 34px; font-size: 13.5px; }
+
+/* 沉浸阅读模式 */
+.immersive .topbar, .immersive .footer, .immersive .back-top, .immersive .toc,
+.immersive .progress-bar, .immersive .back-link { display: none !important; }
+.immersive .main { max-width: 1120px; }
+.immersive .post-article { padding: 56px 72px; border-radius: 24px; }
+.immersive .post-content { font-size: 16.5px; line-height: 1.9; }
+@media (max-width: 700px) { .immersive .post-article { padding: 30px 22px; } }
 
 /* 内容两栏 */
 .content-grid { display:grid; grid-template-columns: 2fr 1fr; gap: 26px; align-items:start; }

@@ -49,7 +49,7 @@
       <div class="hero">
         <div class="hero-deco" aria-hidden="true"></div>
         <div class="hero-left">
-          <p class="kicker">A VETERAN'S CODING DIARY · 2026</p>
+          <p class="kicker" id="day-counter">A VETERAN'S CODING DIARY · 2026</p>
           <h1 class="hero-title">从躺平<span class="grad-flow">到站直</span></h1>
           <p class="hero-sub" id="hero-sub">一个退伍兵的编程日记。写代码、写日子、写怎么把自己从床上拉起来。数据全部存进数据库，功能全部闭环。</p>
           <div class="hero-actions">
@@ -77,11 +77,17 @@
           <button class="sort-btn" data-sort="likes" onclick="sortBy('likes')">最热</button>
           <button class="sort-btn" data-sort="views" onclick="sortBy('views')">最多阅读</button>
         </div>
+        <button class="view-toggle" id="view-toggle" onclick="toggleView()" title="切换卡片/列表视图">
+          <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h5.5v5.5H2V2Zm6.5 0H14v5.5H8.5V2ZM2 8.5h5.5V14H2V8.5Zm6.5 0H14V14H8.5V8.5Z"/></svg>
+        </button>
       </div>
 
       <div class="content-grid">
         <div class="posts-col">
           <div class="post-grid" id="post-grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+          <div class="load-more-wrap" id="load-more-wrap" hidden>
+            <button class="btn-ghost" id="load-more-btn" onclick="loadMore()">加载更多文章</button>
+          </div>
           <div class="empty-state" id="empty-state" hidden>
             <p>没有找到匹配的文章。</p>
             <button class="btn-primary" onclick="go('admin', 'write')">写第一篇</button>
@@ -246,6 +252,7 @@
         <label class="field"><span>主题色（全站主色）</span><input type="color" id="set-accent" style="width:90px;height:40px;padding:2px"></label>
         <label class="field"><span>页脚文字</span><input type="text" id="set-footer" maxlength="80"></label>
         <label class="field"><span>站内公告（留空则不显示；填了会在首页顶部出现公告条，可被访客关闭）</span><input type="text" id="set-notice" maxlength="100" placeholder="比如：欢迎来到重启日志，有问题在文章下留言"></label>
+        <label class="field"><span>重启起点日期（首页显示"重启第 N 天"，格式 YYYY-MM-DD）</span><input type="text" id="set-start-date" maxlength="10" placeholder="2026-08-09"></label>
         <div class="form-actions">
           <button class="btn-primary" onclick="saveSettings()">保存设置</button>
           <button class="btn-ghost" onclick="loadSettings()">恢复当前值</button>
