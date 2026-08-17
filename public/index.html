@@ -8,6 +8,8 @@
   <meta property="og:title" content="重启日志">
   <meta property="og:description" content="从躺平到站直：一个退伍兵的编程日记。">
   <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0d9488">
+  <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -27,6 +29,7 @@
         <button class="nav-btn" data-nav="timeline" onclick="go('timeline')">时间线</button>
         <button class="nav-btn" data-nav="checkin" onclick="go('checkin')">打卡</button>
         <button class="nav-btn" data-nav="guestbook" onclick="go('guestbook')">留言</button>
+        <button class="nav-btn" data-nav="portfolio" onclick="go('portfolio')">作品集</button>
         <button class="nav-btn" data-nav="about" onclick="go('about')">关于</button>
         <button class="nav-btn" data-nav="admin" onclick="go('admin')">管理</button>
         <a class="icon-link" href="/feed.xml" target="_blank" title="RSS 订阅" aria-label="RSS">
@@ -179,6 +182,31 @@
         </div>
       </div>
       <div class="guestbook-list" id="guestbook-list"><div class="skeleton" style="height:120px"></div></div>
+    </section>
+
+    <!-- ═══ 作品集 ═══ -->
+    <section id="view-portfolio" class="view" hidden>
+      <div class="portfolio-hero">
+        <p class="kicker">PORTFOLIO</p>
+        <h1 class="page-title">作品集与简历</h1>
+        <p class="hero-sub" style="margin-bottom:26px">软件技术专业大专，2024–2026 服役，2026 年 3 月退伍。正在用代码把自己拉起来——以下是我从零开始做的事情。</p>
+      </div>
+      <div class="portfolio-grid">
+        <div class="pf-card panel">
+          <div class="side-title">技能</div>
+          <div id="skills-bars"></div>
+        </div>
+        <div class="pf-card panel">
+          <div class="side-title">关于我</div>
+          <p style="font-size:14px;color:var(--muted);margin-bottom:8px">大专学历，软件技术专业。2024–2026 年在中国人民解放军服役，义务兵，炊事保障。2026 年 3 月退伍，回到家乡广东汕头。</p>
+          <p style="font-size:14px;color:var(--muted);margin-bottom:8px">退伍后自学编程：HTML/CSS → JavaScript → Node.js → 数据库 → 全栈博客。从"什么都不会"到搭建出完整网站，用了不到两周。</p>
+          <p style="font-size:14px;color:var(--muted);">📧 邮箱：待补充 ｜ 📍 广东汕头（金平区）</p>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <div class="side-title">项目</div>
+        <div class="pf-projects" id="pf-projects"></div>
+      </div>
     </section>
 
     <!-- ═══ 标签页 ═══ -->

@@ -1193,6 +1193,10 @@ observeReveals(document);
 loadSettings();
 loadStats();
 loadPosts();
+// PWA：注册 Service Worker（离线缓存）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 if (/^#post-/.test(location.hash)) {
   const m = location.hash.match(/^#post-(\d+)$/);
   if (m) openPost(Number(m[1]));

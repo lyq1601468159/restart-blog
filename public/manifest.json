@@ -1,0 +1,13 @@
+{
+  "name": "重启日志",
+  "short_name": "重启日志",
+  "description": "从躺平到站直：一个退伍兵的编程日记",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0d9488",
+  "background_color": "#fafaf9",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }
+  ]
+}

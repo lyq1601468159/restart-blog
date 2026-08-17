@@ -874,6 +874,23 @@ body.nightrun {
 .resonate-btn:hover, .resonate-btn.on { color: var(--accent); border-color: var(--accent); }
 .resonate-btn.on { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 
+/* 作品集 */
+.portfolio-hero { margin-bottom: 24px; }
+.portfolio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.pf-card.panel { padding: 22px 24px; }
+.skill-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.skill-name { width: 110px; font-size: 13px; color: var(--text); flex: none; }
+.skill-track { flex: 1; height: 14px; background: var(--bg-soft); border-radius: 7px; overflow: hidden; }
+.skill-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 7px; transition: width .8s ease; }
+.skill-pct { width: 36px; font-size: 12px; color: var(--muted); text-align: right; flex: none; }
+.pf-projects { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pf-pt { padding: 14px 16px; border: 1px solid var(--stroke); border-radius: 12px; background: var(--bg-soft); }
+.pf-pt h4 { font-size: 14.5px; font-weight: 600; margin-bottom: 4px; }
+.pf-pt p { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.pf-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-tag { font-size: 11px; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 999px; padding: 2px 10px; }
+@media (max-width: 700px) { .portfolio-grid, .pf-projects { grid-template-columns: 1fr; } }
+
 /* 页脚 */
 .footer { text-align:center; padding: 26px 20px 44px; border-top: 1px solid var(--stroke); }
 .footer p { font-size: 12px; color: var(--muted); }
