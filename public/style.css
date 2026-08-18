@@ -966,8 +966,11 @@ body.nightrun {
 
 /* ── 全屏沉浸式 Hero（Linzy 风格） ── */
 .immersive-hero {
-  position: relative; width: 100%; height: 100vh; min-height: 520px; overflow: hidden;
+  position: relative; width: 100vw; height: 100vh; min-height: 520px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
+  margin-left: calc(50% - 50vw); /* 突破 1080px 容器限制，铺满全屏宽度 */
+  margin-top: -44px; /* 抵消 .main 的 padding-top，紧贴导航栏 */
+  margin-bottom: 0;
 }
 .hero-bg {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -1025,13 +1028,15 @@ body.nightrun {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50% { transform: translateX(-50%) translateY(8px); }
 }
-/* 主内容区（Hero 下方） */
+/* 主内容区（Hero 下方）：间距交给 .main 统一控制 */
 .main-content {
   position: relative; z-index: 5;
   margin-top: -1px; /* 无缝衔接 */
   background: var(--bg);
   box-shadow: 0 -4px 30px rgba(0,0,0,.08);
+  padding: 44px 0 0; /* 只留顶部呼吸空间，左右/底部沿用 .main 的 padding */
 }
+body { overflow-x: hidden; } /* 防止 100vw Hero 撑出横向滚动条 */
 @media (max-width: 700px) {
   .hero-nav { padding: 12px 16px; }
   .hero-nav-links { gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
