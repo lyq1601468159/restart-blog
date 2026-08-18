@@ -54,7 +54,7 @@ function syncThemeIcons() {
 
 // ── 页面切换 ──
 function go(view, tab) {
-  ['home', 'post', 'tag', 'timeline', 'checkin', 'guestbook', 'about', 'admin'].forEach(v => {
+  ['home', 'post', 'tag', 'timeline', 'checkin', 'guestbook', 'portfolio', 'about', 'admin'].forEach(v => {
     const el = document.getElementById('view-' + v);
     if (el) el.hidden = v !== view;
   });
@@ -64,6 +64,7 @@ function go(view, tab) {
   if (view === 'timeline') renderTimeline();
   if (view === 'checkin') renderCheckin();
   if (view === 'guestbook') renderGuestbook();
+  if (view === 'portfolio') renderPortfolio();
   if (view === 'admin') adminTab(tab || 'write');
   if (view === 'home' && location.hash) location.hash = '';
   window.scrollTo(0, 0);
@@ -552,6 +553,7 @@ function applySettings(s) {
 async function loadSettings() {
   try {
     const s = await api('/api/settings');
+    window.__settings = s;
     applySettings(s);
     const g = id => document.getElementById(id);
     if (g('set-name')) g('set-name').value = s.site_name;
@@ -751,6 +753,63 @@ function downloadMd() {
 function toggleNightrun() {
   document.body.classList.toggle('nightrun');
   localStorage.setItem('blog-nightrun', document.body.classList.contains('nightrun') ? '1' : '0');
+}
+
+// ── 作品集 ──
+function renderPortfolio() {
+  const s = window.__settings || {};
+  let skills = [];
+  try { skills = JSON.parse(s.portfolio_skills || '[]'); } catch (e) {}
+  if (!skills.length) skills = [
+    { name: 'HTML / CSS', pct: 75 }, { name: 'JavaScript', pct: 55 }, { name: 'Node.js', pct: 50 },
+    { name: 'SQL / 数据库', pct: 50 }, { name: 'Git / 版本控制', pct: 40 }, { name: '内网穿透 / 运维', pct: 55 }, { name: '炊事 / 后勤保障', pct: 70 }
+  ];
+  document.getElementById('skills-bars').innerHTML = skills.map(sk =>
+    '<div class="skill-row"><span class="skill-name">' + escapeHtml(sk.name) + '</span>' +
+    '<div class="skill-track"><div class="skill-fill" style="width:' + Number(sk.pct) + '%"></div></div>' +
+    '<span class="skill-pct">' + Number(sk.pct) + '%</span></div>'
+  ).join('');
+
+  let projects = [];
+  try { projects = JSON.parse(s.portfolio_projects || '[]'); } catch (e) {}
+  if (!projects.length) projects = [
+    { name: '重启日志', desc: '全栈博客：双主题UI + Express + SQLite/Postgres双驱动 + 14个API接口 + 40+项功能', tags: 'HTML/CSS,JS,Node.js,PostgreSQL,内网穿透' },
+    { name: '自动化部署', desc: 'Cloudflare隧道/花生壳/cpolar三种内网穿透方案全流程实践', tags: '运维,Shell,Linux' },
+    { name: '简历网页', desc: '第一个HTML/CSS作品，从零手写个人简历页面，响应式布局', tags: 'HTML,CSS' },
+    { name: '数据库设计', desc: '6张业务表，SQLite/PG双驱动，参数化查询防注入', tags: 'SQL,数据库设计,PostgreSQL' }
+  ];
+  document.getElementById('pf-projects').innerHTML = projects.map(p =>
+    '<div class="pf-pt"><h4>' + escapeHtml(p.name) + '</h4><p>' + escapeHtml(p.desc) + '</p>' +
+    '<div class="pf-tags">' + (p.tags || '').split(',').map(t => '<span class="pf-tag">' + escapeHtml(t.trim()) + '</span>').join('') + '</div></div>'
+  ).join('');
+
+  // 动态更新联系邮箱
+  const email = s.portfolio_email || '待补充';
+  const emailEl = document.querySelector('#view-portfolio .pf-card:last-child p:last-child');
+  if (emailEl) emailEl.innerHTML = '📧 ' + escapeHtml(email) + ' ｜ 📍 广东汕头（金平区）';
+}
+
+// ── 作品集后台管理 ──
+function loadPortfolioSettings() {
+  const s = window.__settings || {};
+  const ids = { 'pf-skills': 'portfolio_skills', 'pf-projects': 'portfolio_projects', 'pf-bio': 'portfolio_bio', 'pf-email': 'portfolio_email' };
+  for (const [id, key] of Object.entries(ids)) {
+    const el = document.getElementById(id);
+    if (el) el.value = s[key] || '';
+  }
+}
+async function savePortfolio() {
+  const body = {
+    portfolio_skills: document.getElementById('pf-skills').value.trim(),
+    portfolio_projects: document.getElementById('pf-projects').value.trim(),
+    portfolio_bio: document.getElementById('pf-bio').value.trim(),
+    portfolio_email: document.getElementById('pf-email').value.trim()
+  };
+  try {
+    const s = await api('/api/settings', { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+    window.__settings = s;
+    toast('作品集已保存，前台刷新即生效');
+  } catch (e) { toast('保存失败：' + e.message); }
 }
 
 // ── 评论 ──
@@ -972,13 +1031,14 @@ function useAsCover() {
 // ── 管理后台各面板 ──
 function adminTab(name) {
   document.querySelectorAll('.admin-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  ['write', 'manage', 'stats', 'comments', 'settings'].forEach(p => {
+  ['write', 'manage', 'stats', 'comments', 'settings', 'portfolio'].forEach(p => {
     document.getElementById('p-' + p).hidden = p !== name;
   });
   if (name === 'manage') loadManage();
   if (name === 'stats') loadStatsPanel();
   if (name === 'comments') loadCommentsPanel();
   if (name === 'settings') loadSettings();
+  if (name === 'portfolio') loadPortfolioSettings();
 }
 
 async function loadManage() {
@@ -1201,3 +1261,76 @@ if (/^#post-/.test(location.hash)) {
   const m = location.hash.match(/^#post-(\d+)$/);
   if (m) openPost(Number(m[1]));
 }
+
+// ── 效果包：光晕 / 粒子 / 打字机 / 逐字浮现 ──
+(function () {
+  // 1. 鼠标光晕
+  const glow = document.getElementById('cursor-glow');
+  if (glow && matchMedia('(pointer:fine)').matches) {
+    let gx = innerWidth / 2, gy = innerHeight / 2, tx = gx, ty = gy;
+    addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; });
+    (function loop() {
+      gx += (tx - gx) * 0.12; gy += (ty - gy) * 0.12;
+      glow.style.left = gx + 'px'; glow.style.top = gy + 'px';
+      requestAnimationFrame(loop);
+    })();
+  }
+
+  // 2. 粒子背景（星空微光）
+  const cv = document.getElementById('particle-canvas');
+  if (cv && cv.getContext) {
+    const ctx = cv.getContext('2d');
+    let W, H, dots = [];
+    const resize = () => {
+      W = cv.width = innerWidth; H = cv.height = innerHeight;
+      dots = Array.from({ length: Math.min(60, Math.floor(W / 25)) }, () => ({
+        x: Math.random() * W, y: Math.random() * H,
+        r: Math.random() * 1.6 + 0.4, s: Math.random() * 0.3 + 0.1
+      }));
+    };
+    resize(); addEventListener('resize', resize);
+    (function draw() {
+      ctx.clearRect(0, 0, W, H);
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#0d9488';
+      for (const d of dots) {
+        d.y -= d.s;
+        if (d.y < -5) { d.y = H + 5; d.x = Math.random() * W; }
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 7);
+        ctx.fillStyle = accent + '33'; ctx.fill();
+      }
+      requestAnimationFrame(draw);
+    })();
+  }
+
+  // 3. 打字机标题（“从躺平到站直”）
+  const heroTitle = document.querySelector('.hero-title');
+  if (heroTitle) {
+    const fullText = heroTitle.textContent;
+    const gradStart = fullText.indexOf('到'); // 渐变部分起点
+    heroTitle.innerHTML = '<span id="type-part"></span><span class="type-cursor"></span>';
+    const partEl = document.getElementById('type-part');
+    const cursor = heroTitle.querySelector('.type-cursor');
+    let i = 0;
+    const type = () => {
+      if (i < fullText.length) {
+        partEl.textContent = fullText.slice(0, i + 1);
+        i++; setTimeout(type, 45);
+      } else {
+        // 打完：恢复渐变 span 结构
+        heroTitle.innerHTML = fullText.slice(0, gradStart) + '<span class="grad-flow">' + fullText.slice(gradStart) + '</span>';
+      }
+    };
+    type();
+  }
+
+  // 4. 滚动浮现（新增 fade-in-block）
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  function watchBlocks() {
+    document.querySelectorAll('.fade-in-block:not(.visible)').forEach(el => io.observe(el));
+  }
+  watchBlocks();
+  const mo = new MutationObserver(watchBlocks);
+  mo.observe(document.body, { childList: true, subtree: true });
+})();

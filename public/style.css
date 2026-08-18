@@ -51,6 +51,47 @@ body {
   line-height: 1.7;
   transition: background .25s, color .25s;
 }
+
+/* ── 顶部阅读进度条 ── */
+#scroll-progress {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+  background: linear-gradient(90deg, var(--accent), #f59e0b);
+  z-index: 2000; transition: width .1s linear;
+}
+
+/* ── 鼠标光晕 ── */
+#cursor-glow {
+  position: fixed; width: 380px; height: 380px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 70%);
+  pointer-events: none; z-index: 0; transform: translate(-50%, -50%);
+  transition: opacity .3s;
+}
+
+/* ── 粒子背景 ── */
+#particle-canvas {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none; opacity: .8;
+}
+
+/* ── 打字机光标 ── */
+.type-cursor {
+  display: inline-block; width: 2px; height: 1em; margin-left: 2px;
+  background: var(--accent); vertical-align: -0.12em; animation: blink 1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ── 逐字浮现 ── */
+.reveal-word {
+  display: inline-block; opacity: 0; transform: translateY(0.5em);
+  animation: wordIn .5s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+@keyframes wordIn { to { opacity: 1; transform: none; } }
+
+/* ── 内容块淡入 ── */
+.fade-in-block {
+  opacity: 0; transform: translateY(18px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.fade-in-block.visible { opacity: 1; transform: none; }
 /* 科技感网格背景 */
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;

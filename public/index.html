@@ -17,6 +17,10 @@
   <!-- 阅读进度条 -->
   <div class="progress-bar" id="progress-bar"></div>
 
+  <!-- 粒子背景 + 鼠标光晕 -->
+  <canvas id="particle-canvas" aria-hidden="true"></canvas>
+  <div id="cursor-glow" aria-hidden="true"></div>
+
   <!-- 顶栏 -->
   <header class="topbar">
     <div class="tb-inner">
@@ -252,6 +256,7 @@
           <button class="admin-tab" data-tab="stats" onclick="adminTab('stats')">数据看板</button>
           <button class="admin-tab" data-tab="comments" onclick="adminTab('comments')">评论管理</button>
           <button class="admin-tab" data-tab="settings" onclick="adminTab('settings')">站点设置</button>
+          <button class="admin-tab" data-tab="portfolio" onclick="adminTab('portfolio')">作品集</button>
         </div>
       </div>
 
@@ -337,6 +342,19 @@
         <div class="form-actions">
           <button class="btn-primary" onclick="saveSettings()">保存设置</button>
           <button class="btn-ghost" onclick="loadSettings()">恢复当前值</button>
+        </div>
+      </div>
+      <!-- 作品集管理 -->
+      <div class="admin-panel panel" id="p-portfolio" hidden>
+        <h3 class="detail-title" style="font-size:18px">作品集管理</h3>
+        <p class="form-hint" style="margin-bottom:16px">修改后保存，前台作品集页立即生效。JSON 格式一段都不能错，有疑问喊我。</p>
+        <label class="field"><span>技能列表（JSON 数组，每项 name + pct）</span><textarea id="pf-skills" rows="8" style="font-size:12.5px;font-family:ui-monospace,Consolas,monospace"></textarea></label>
+        <label class="field"><span>项目列表（JSON 数组，每项 name + desc + tags）</span><textarea id="pf-projects" rows="10" style="font-size:12.5px;font-family:ui-monospace,Consolas,monospace"></textarea></label>
+        <label class="field"><span>个人简介</span><textarea id="pf-bio" rows="4"></textarea></label>
+        <label class="field"><span>联系邮箱</span><input type="text" id="pf-email" placeholder="your@email.com"></label>
+        <div class="form-actions">
+          <button class="btn-primary" onclick="savePortfolio()">保存作品集</button>
+          <button class="btn-ghost" onclick="loadPortfolioSettings()">恢复当前值</button>
         </div>
       </div>
     </section>

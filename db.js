@@ -505,7 +505,11 @@ const SETTINGS_DEFAULTS = {
   site_accent: '#0d9488',
   site_footer: 'RESTART·LOG — 从躺平到站直 · 前端 + Express + SQLite/Postgres 全栈闭环',
   site_notice: '',
-  start_date: '2026-08-09'
+  start_date: '2026-08-09',
+  portfolio_skills: '[{"name":"HTML / CSS","pct":75},{"name":"JavaScript","pct":55},{"name":"Node.js","pct":50},{"name":"SQL / 数据库","pct":50},{"name":"Git / 版本控制","pct":40},{"name":"内网穿透 / 运维","pct":55},{"name":"炊事 / 后勤保障","pct":70}]',
+  portfolio_projects: '[{"name":"重启日志","desc":"全栈博客：双主题UI + Express + SQLite/Postgres双驱动 + 14个API接口 + 40+项功能","tags":"HTML/CSS,JS,Node.js,PostgreSQL,内网穿透"},{"name":"自动化部署","desc":"Cloudflare隧道/花生壳/cpolar三种内网穿透方案全流程实践","tags":"运维,Shell,Linux"},{"name":"简历网页","desc":"第一个HTML/CSS作品，从零手写个人简历页面，响应式布局","tags":"HTML,CSS"},{"name":"数据库设计","desc":"6张业务表，SQLite/PG双驱动，参数化查询防注入","tags":"SQL,数据库设计,PostgreSQL"}]',
+  portfolio_bio: '软件技术专业大专，2024–2026 服役，义务兵，炊事保障。退伍后自学编程，从零搭建全栈博客。',
+  portfolio_email: '待补充'
 };
 
 async function getSettings() {
