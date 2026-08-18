@@ -392,6 +392,12 @@ async function openPost(id) {
             '<button class="btn-primary" id="c-submit" style="align-self:flex-start" onclick="submitComment(' + post.id + ')">发表评论</button>' +
           '</div>' +
         '</div>' +
+        '<div class="author-signoff">' +
+          '<div class="as-avatar">R</div>' +
+          '<div><div class="as-name">重启日志</div>' +
+          '<div class="as-bio">Backend Developer · 退伍兵 · 自学全栈中</div></div>' +
+          '<button class="follow-btn" onclick="go(\'guestbook\')">Follow Me</button>' +
+        '</div>' +
       '</article>';
     window.__currentContent = post.content;
     // 段落共鸣按钮
