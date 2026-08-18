@@ -1349,4 +1349,31 @@ if (/^#post-/.test(location.hash)) {
   watchBlocks();
   const mo = new MutationObserver(watchBlocks);
   mo.observe(document.body, { childList: true, subtree: true });
+
+  // 5. 副标题打字循环（打出→停顿→删除→下一条）
+  const typeEl = document.getElementById('hero-type');
+  if (typeEl) {
+    const phrases = [
+      'Backend Developer · 退伍兵 · 自学全栈中',
+      '从躺平到站直：一个退伍兵的编程日记',
+      '手写的每一行代码，都是把自己重新焊回生活里的铆钉',
+      '正在用代码，把自己重新拉起来'
+    ];
+    let pi = 0, ci = 0, deleting = false;
+    const tick = () => {
+      const phrase = phrases[pi];
+      if (!deleting) {
+        ci++;
+        typeEl.textContent = phrase.slice(0, ci);
+        if (ci >= phrase.length) { deleting = true; setTimeout(tick, 2200); return; }
+        setTimeout(tick, 90);
+      } else {
+        ci--;
+        typeEl.textContent = phrase.slice(0, ci);
+        if (ci <= 0) { deleting = false; pi = (pi + 1) % phrases.length; setTimeout(tick, 400); return; }
+        setTimeout(tick, 45);
+      }
+    };
+    setTimeout(tick, 800);
+  }
 })();
