@@ -818,6 +818,16 @@ async function savePortfolio() {
   } catch (e) { toast('保存失败：' + e.message); }
 }
 
+function scrollToPosts() {
+  const mc = document.getElementById('main-content');
+  if (mc) { mc.scrollIntoView({ behavior: 'smooth' }); return; }
+  document.getElementById('post-grid')?.scrollIntoView({ behavior: 'smooth' });
+}
+function scrollPastHero() {
+  const mc = document.getElementById('main-content');
+  if (mc) { mc.scrollIntoView({ behavior: 'smooth' }); }
+}
+
 // ── 评论 ──
 async function loadComments(postId) {
   const list = document.getElementById('comment-list');

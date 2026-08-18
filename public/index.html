@@ -52,6 +52,32 @@
 
     <!-- ═══ 首页 ═══ -->
     <section id="view-home" class="view">
+      <!-- 全屏沉浸式 Hero（Linzy 风格） -->
+      <div class="immersive-hero" id="immersive-hero">
+        <img class="hero-bg" src="/uploads/hero-bg.jpg" alt="" onerror="this.style.display='none'">
+        <div class="hero-overlay"></div>
+        <nav class="hero-nav">
+          <span class="hero-brand">重启日志</span>
+          <div class="hero-nav-links">
+            <a onclick="scrollPastHero()">首页</a>
+            <a onclick="go('timeline');scrollPastHero()">时间线</a>
+            <a onclick="go('checkin');scrollPastHero()">打卡</a>
+            <a onclick="go('guestbook');scrollPastHero()">留言</a>
+            <a onclick="go('portfolio');scrollPastHero()">作品集</a>
+            <a onclick="go('about');scrollPastHero()">关于</a>
+          </div>
+        </nav>
+        <div class="hero-center">
+          <h1 class="hero-big-title">重启日志</h1>
+          <p class="hero-big-sub">Backend Developer · 退伍兵 · 自学全栈中</p>
+        </div>
+        <button class="hero-scroll-hint" onclick="scrollPastHero()" aria-label="向下滚动">
+          <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        </button>
+      </div>
+
+      <!-- 常规内容区（滚动后显示） -->
+      <div class="main-content" id="main-content">
       <div class="notice-bar" id="notice-bar" hidden>
         <span id="notice-text"></span>
         <button class="notice-close" onclick="closeNotice()" aria-label="关闭">×</button>
@@ -141,8 +167,7 @@
           </div>
         </aside>
       </div>
-    </section>
-
+    </div>
     <!-- ═══ 时间线页 ═══ -->
     <section id="view-timeline" class="view" hidden>
       <button class="back-link" onclick="go('home')">← 返回首页</button>
