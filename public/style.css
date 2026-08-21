@@ -1017,6 +1017,7 @@ body.nightrun {
   position: relative; z-index: 2;
   text-align: center;
   padding: 20px;
+  margin-top: -12vh;
 }
 .hero-big-title {
   font-size: clamp(32px, 5vw, 52px); font-weight: 700;
