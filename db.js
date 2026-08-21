@@ -254,7 +254,7 @@ if (driver === 'sqlite') {
 // 文章列表（不含正文）
 async function listPosts() {
   const sql =
-    'SELECT id, title, tag, date, excerpt, likes, views, cover, cover_url FROM posts ORDER BY id DESC';
+    'SELECT p.id, p.title, p.tag, p.date, p.excerpt, p.likes, p.views, p.cover, p.cover_url, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comment_count FROM posts p ORDER BY p.id DESC';
   if (driver === 'sqlite') return db.prepare(sql).all();
   const r = await db.query(sql);
   return r.rows;
@@ -263,7 +263,7 @@ async function listPosts() {
 // 分页列表
 async function listPostsPage(limit, offset) {
   const n = Number(limit) || 6, o = Number(offset) || 0;
-  const sql = 'SELECT id, title, tag, date, excerpt, likes, views, cover, cover_url FROM posts ORDER BY id DESC LIMIT ' + n + ' OFFSET ' + o;
+  const sql = 'SELECT p.id, p.title, p.tag, p.date, p.excerpt, p.likes, p.views, p.cover, p.cover_url, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comment_count FROM posts p ORDER BY p.id DESC LIMIT ' + n + ' OFFSET ' + o;
   if (driver === 'sqlite') return db.prepare(sql).all();
   const r = await db.query(sql);
   return r.rows;

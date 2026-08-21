@@ -205,6 +205,7 @@ function renderFeed() {
         '<div class="post-meta">' +
           '<span><svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 14.5C4.6 12.2 1.5 9.8 1.5 6.6 1.5 4.6 3.1 3 5.1 3c1.2 0 2.3.6 2.9 1.6C8.6 3.6 9.7 3 10.9 3c2 0 3.6 1.6 3.6 3.6 0 3.2-3.1 5.6-6.5 7.9Z"/></svg>' + p.likes + '</span>' +
           '<span><svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 3.5C4.9 3.5 2.3 5.7 1.4 8c.9 2.3 3.5 4.5 6.6 4.5s5.7-2.2 6.6-4.5c-.9-2.3-3.5-4.5-6.6-4.5Zm0 7a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/></svg>阅读 ' + p.views + '</span>' +
+          '<span><svg viewBox="0 0 16 16"><path fill="currentColor" d="M2 2h9.5a2.5 2.5 0 0 1 2.5 2.5V14l-3-2.5H2a1.5 1.5 0 0 1-1.5-1.5v-7A1.5 1.5 0 0 1 2 1.5Zm0 1.5v7H10.6l1.9 1.6V4.5a1 1 0 0 0-1-1H2Z"/></svg>评论 ' + (p.comment_count || 0) + '</span>' +
         '</div>' +
       '</div>';
     card.addEventListener('click', () => openPost(p.id));

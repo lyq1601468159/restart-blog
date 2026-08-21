@@ -6,39 +6,39 @@
 
 /* ── 主题变量 ── */
 :root {
-  --accent: #0d9488;          /* 青绿主色 */
-  --accent-2: #d97706;        /* 琥珀辅色 */
-  --accent-3: #7c3aed;        /* 罗兰 */
-  --accent-4: #dc2626;        /* 朱红 */
+  --accent: #ff416c;          /* POETIZE 珊瑚红主色 */
+  --accent-2: #ff4b2b;        /* POETIZE 渐变起点 */
+  --accent-3: #ff8a5c;        /* 暖珊瑚 */
+  --accent-4: #c2185b;        /* 深玫红 */
 }
 html[data-theme="light"] {
-  --bg: #fafaf9;
-  --bg-soft: #f4f4f2;
-  --card: rgba(255,255,255,.78);
+  --bg: #fff5f7;
+  --bg-soft: #fdeef2;
+  --card: rgba(255,255,255,.82);
   --card-solid: #ffffff;
-  --stroke: #e7e5e4;
-  --stroke-strong: #d6d3d1;
-  --text: #1c1917;
-  --muted: #78716c;
+  --stroke: #f3d9e0;
+  --stroke-strong: #e8c4cd;
+  --text: #27212b;
+  --muted: #8a7a82;
   --glass: rgba(255,255,255,.7);
-  --shadow: 0 1px 3px rgba(0,0,0,.05);
-  --grid-line: rgba(28,25,23,.045);
-  --mark: #fde68a;
+  --shadow: 0 1px 3px rgba(255,65,108,.06);
+  --grid-line: rgba(255,65,108,.05);
+  --mark: #ffd6e0;
   color-scheme: light;
 }
 html[data-theme="dark"] {
-  --bg: #0c0c0e;
-  --bg-soft: #131316;
-  --card: rgba(23,23,27,.72);
-  --card-solid: #17171b;
-  --stroke: #26262b;
-  --stroke-strong: #3f3f46;
-  --text: #e7e5e4;
-  --muted: #8b8b93;
-  --glass: rgba(23,23,27,.7);
+  --bg: #15151c;
+  --bg-soft: #1b1b2e;
+  --card: rgba(34,24,49,.72);
+  --card-solid: #221831;
+  --stroke: #2e2e40;
+  --stroke-strong: #3f3f56;
+  --text: #f0eef5;
+  --muted: #9a9ab0;
+  --glass: rgba(27,27,46,.7);
   --shadow: 0 1px 3px rgba(0,0,0,.4);
-  --grid-line: rgba(255,255,255,.035);
-  --mark: #713f12;
+  --grid-line: rgba(255,255,255,.04);
+  --mark: #4a2a5e;
   color-scheme: dark;
 }
 
@@ -50,6 +50,22 @@ body {
   color: var(--text);
   line-height: 1.7;
   transition: background .25s, color .25s;
+}
+
+/* ── POETIZE 流动渐变动画背景（亮色：粉→白→淡蓝） ── */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: -2;
+  background: linear-gradient(180deg, #fff5f7 0%, #ffffff 50%, #f0f4ff 100%);
+  background-size: 200% 200%;
+  animation: poetizeBG 14s ease infinite;
+}
+html[data-theme="dark"] body::after {
+  background: linear-gradient(180deg, #221831 0%, #1b1b2e 50%, #15151c 100%);
+}
+@keyframes poetizeBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* ── 顶部阅读进度条 ── */
