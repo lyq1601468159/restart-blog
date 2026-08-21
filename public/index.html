@@ -29,13 +29,13 @@
         <span class="logo-text">重启<span class="logo-accent">日志</span></span>
       </button>
       <nav class="tb-nav">
-        <button class="nav-btn active" data-nav="home" onclick="go('home')">首页</button>
-        <button class="nav-btn" data-nav="timeline" onclick="go('timeline')">时间线</button>
-        <button class="nav-btn" data-nav="checkin" onclick="go('checkin')">打卡</button>
-        <button class="nav-btn" data-nav="guestbook" onclick="go('guestbook')">留言</button>
-        <button class="nav-btn" data-nav="portfolio" onclick="go('portfolio')">作品集</button>
-        <button class="nav-btn" data-nav="about" onclick="go('about')">关于</button>
-        <button class="nav-btn" data-nav="admin" onclick="go('admin')">管理</button>
+        <button class="nav-btn active" data-nav="home" onclick="go('home')"><svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M8 1.5 1.5 7h2v6.5h3.5V9.5h2v4H12.5V7h2L8 1.5Z"/></svg>首页</button>
+        <button class="nav-btn" data-nav="timeline" onclick="go('timeline')"><svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm0 1.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10ZM8 4v4.2l2.8 1.7.8-1.3-2.1-1.3V4H8Z"/></svg>时间线</button>
+        <button class="nav-btn" data-nav="checkin" onclick="go('checkin')"><svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2.5 1.5h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1Zm0 2v10h11v-10h-11Zm2 3h7v1.5h-7V6.5Zm0 3h7V11h-7V9.5Z"/></svg>打卡</button>
+        <button class="nav-btn" data-nav="guestbook" onclick="go('guestbook')"><svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h9.5a2.5 2.5 0 0 1 2.5 2.5V14l-3-2.5H2a1.5 1.5 0 0 1-1.5-1.5v-7A1.5 1.5 0 0 1 2 1.5Zm0 1.5v7H10.6l1.9 1.6V4.5a1 1 0 0 0-1-1H2Z"/></svg>留言</button>
+        <button class="nav-btn" data-nav="portfolio" onclick="go('portfolio')"><svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M1.5 3h4l1.2 1.5h7.8v8.5a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V3Zm1.5 1.5v8h9.5v-7H6.3L5.1 4.5H3Z"/></svg>作品集</button>
+        <button class="nav-btn" data-nav="about" onclick="go('about')"><svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 1.5c-2.7 0-5 1.5-5 3.5V14h10v-1c0-2-2.3-3.5-5-3.5Z"/></svg>关于</button>
+        <button class="nav-btn" data-nav="admin" onclick="go('admin')"><svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M8 1.5 14.5 4v4.5c0 3.4-2.7 5.6-6.5 6-3.8-.4-6.5-2.6-6.5-6V4L8 1.5ZM8 3.2 3 5v3.5c0 2.6 2 4.4 5 4.8 3-.4 5-2.2 5-4.8V5L8 3.2ZM7 6v3h2V6H7Z"/></svg>管理</button>
         <a class="icon-link" href="/feed.xml" target="_blank" title="RSS 订阅" aria-label="RSS">
           <svg viewBox="0 0 16 16" width="15" height="15"><path fill="currentColor" d="M2.75 1A1.75 1.75 0 0 0 1 2.75v.6c0 6.58 5.33 11.91 11.92 11.91h.58a1.75 1.75 0 0 0 1.75-1.75v-.59A1.75 1.75 0 0 0 13.32 11h-.44c-4.97 0-9-4.03-9-9V1.75A1.75 1.75 0 0 0 2.75 1Zm0 3.5a.75.75 0 0 0-.75.75v.24c0 5.75 4.66 10.41 10.41 10.41h.24a.75.75 0 0 0 .75-.75v-.15a.75.75 0 0 0-.75-.75h-.14c-4.87 0-8.81-3.95-8.81-8.81v-.14a.75.75 0 0 0-.75-.75h-.19ZM2.75 11a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z"/></svg>
         </a>
@@ -60,10 +60,11 @@
           <h1 class="hero-big-title">相信记录的力量</h1>
           <p class="hero-big-sub"><span id="hero-type"></span><span class="type-cursor"></span></p>
         </div>
-        <button class="<div class="hero-wave" aria-hidden="true">
-          <svg viewBox="0 0 1440 60" preserveAspectRatio="none"><path d="M0,32 C240,64 480,0 720,24 C960,48 1200,8 1440,32 L1440,60 L0,60 Z"/></svg>
+        <div class="hero-wave" aria-hidden="true">
+          <svg class="wave-layer wave-a" viewBox="0 0 2880 60" preserveAspectRatio="none"><path d="M0,32 C240,64 480,0 720,24 C960,48 1200,8 1440,32 C1680,56 1920,0 2160,24 C2400,48 2640,8 2880,32 L2880,60 L0,60 Z"/></svg>
+          <svg class="wave-layer wave-b" viewBox="0 0 2880 60" preserveAspectRatio="none"><path d="M0,32 C240,64 480,0 720,24 C960,48 1200,8 1440,32 C1680,56 1920,0 2160,24 C2400,48 2640,8 2880,32 L2880,60 L0,60 Z"/></svg>
         </div>
-        hero-scroll-hint" onclick="scrollPastHero()" aria-label="向下滚动">
+        <button class="hero-scroll-hint" onclick="scrollPastHero()" aria-label="向下滚动">
           <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
         </button>
       </div>
@@ -124,6 +125,16 @@
 
         <!-- 侧边栏 -->
         <aside class="side">
+          <div class="side-card profile-card">
+            <div class="profile-avatar"><img src="/uploads/avatar-poetize.png" alt="头像" onerror="this.remove()"><span class="pa-fallback">R</span></div>
+            <div class="profile-name">重启日志</div>
+            <div class="profile-stats">
+              <div class="ps-item"><svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M1.5 2h5l1 1h7v10h-13V2Zm1.5 1.5v8h10v-7H6.9L5.9 3.5H3Z"/></svg><span>文章</span><b id="pf-posts">0</b></div>
+              <div class="ps-item"><svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M1.5 3h4l1.2 1.5h7.8v8.5a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V3Z"/></svg><span>分类</span><b id="pf-tags">0</b></div>
+              <div class="ps-item"><svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 1.5c3 3 4.5 5 4.5 7.5a4.5 4.5 0 0 1-9 0C3.5 6.5 5 4.5 8 1.5Zm0 3.2C6.5 6.4 5.5 7.8 5.5 9a2.5 2.5 0 0 0 5 0c0-1.2-1-2.6-2.5-4.3Z"/></svg><span>访问量</span><b id="pf-views">0</b></div>
+            </div>
+          </div>
+
           <div class="side-card">
             <div class="side-title">关于我</div>
             <div class="about-mini">

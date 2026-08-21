@@ -90,7 +90,14 @@ async function loadStats() {
     animateNum(document.getElementById('s-chars'), s.totalChars);
     animateNum(document.getElementById('s-likes'), s.totalLikes);
     animateNum(document.getElementById('s-views'), s.totalViews);
-    document.getElementById('side-stats').innerHTML =
+      // POETIZE 个人信息卡数据
+  const pfP = document.getElementById('pf-posts');
+  const pfT = document.getElementById('pf-tags');
+  const pfV = document.getElementById('pf-views');
+  if (pfP) pfP.textContent = s.postCount;
+  if (pfV) pfV.textContent = s.totalViews;
+  if (pfT) pfT.textContent = new Set((window.__posts || []).map(p => p.tag).filter(Boolean)).size;
+  document.getElementById('side-stats').innerHTML =
       '<span><b>' + s.postCount + '</b> 篇文章</span>' +
       '<span><b>' + s.totalChars + '</b> 字</span>' +
       '<span><b>' + s.totalLikes + '</b> 点赞 · <b>' + s.totalViews + '</b> 阅读</span>';
@@ -1377,4 +1384,21 @@ if (/^#post-/.test(location.hash)) {
     };
     setTimeout(tick, 800);
   }
+
+  // 6. POETIZE 粉色花瓣飘落
+  (function spawnPetals() {
+    const colors = ['#f8bbd0', '#f48fb1', '#f06292', '#f8bbd0'];
+    for (let i = 0; i < 14; i++) {
+      const p = document.createElement('div');
+      p.className = 'petal';
+      p.style.left = (Math.random() * 100) + 'vw';
+      p.style.animationDuration = (7 + Math.random() * 9) + 's';
+      p.style.animationDelay = (Math.random() * 12) + 's';
+      const sz = 10 + Math.random() * 10;
+      p.style.fontSize = sz + 'px';
+      p.style.color = colors[i % colors.length];
+      p.textContent = '🌸';
+      document.body.appendChild(p);
+    }
+  })();
 })();

@@ -157,6 +157,11 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 }
 .tb-brand:hover .logo-box { transform: rotate(-8deg) scale(1.06); }
 .logo-accent { color: var(--accent); }
+
+.nav-btn { display: inline-flex; align-items: center; gap: 4px; }
+.nav-btn svg { flex: none; opacity: .75; }
+.nav-btn.active svg { opacity: 1; }
+
 .tb-nav { display:flex; align-items:center; gap: 6px; }
 .nav-btn {
   background:none; border:none; cursor:pointer;
@@ -1050,10 +1055,22 @@ body.nightrun {
 /* 鈹€鈹€ POETIZE 娉㈡氮鍒嗛殧锛圚ero 涓庡唴瀹瑰尯涔嬮棿锛?鈹€鈹€ */
 .hero-wave {
   position: absolute; bottom: -1px; left: 0; right: 0; z-index: 4;
-  width: 100%; height: 60px; pointer-events: none;
+  width: 100%; height: 60px; pointer-events: none; overflow: hidden;
 }
-.hero-wave svg { display: block; width: 100%; height: 100%; }
+.hero-wave .wave-layer {
+  position: absolute; bottom: 0; left: 0;
+  display: block; width: 200%; height: 100%;
+}
+.hero-wave .wave-a { animation: waveSlide 7s linear infinite; }
+.hero-wave .wave-b {
+  animation: waveSlide 11s linear infinite reverse;
+  opacity: .55;
+}
 .hero-wave path { fill: var(--bg); }
+@keyframes waveSlide {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
 
 .main-content {
   position: relative; z-index: 5;
@@ -1093,3 +1110,44 @@ body { overflow-x: hidden; } /* 闃叉 100vw Hero 鎾戝嚭妯悜婊氬姩
   .hero-stats { grid-template-columns: 1fr 1fr; }
 }
 .modal-mask[hidden] { display: none !important; }
+
+/* ── POETIZE 个人信息卡 ── */
+.profile-card {
+  text-align: center; padding: 22px 16px;
+  background: linear-gradient(180deg, #e8f4fc 0%, #f7fbfe 100%);
+  border: 2px solid #7ed321 !important; border-radius: 14px;
+}
+.profile-avatar {
+  width: 88px; height: 88px; margin: 0 auto 12px; border-radius: 50%;
+  overflow: hidden; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.12);
+  position: relative;
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-avatar .pa-fallback {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 34px; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, #3498db, #5dade2);
+}
+.profile-name { font-size: 18px; font-weight: 700; letter-spacing: .04em; color: #1a1a1a; margin-bottom: 14px; }
+.profile-stats { display: flex; justify-content: space-around; }
+.ps-item { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 52px; }
+.ps-item svg { color: #666; }
+.ps-item span { font-size: 11px; color: #666; }
+.ps-item b { font-size: 15px; color: #1a1a1a; font-variant-numeric: tabular-nums; }
+html[data-theme="dark"] .profile-card {
+  background: linear-gradient(180deg, #1b2b3a 0%, #221831 100%);
+  border-color: #7ed321 !important;
+}
+html[data-theme="dark"] .profile-name, html[data-theme="dark"] .ps-item b { color: #f0eef5; }
+html[data-theme="dark"] .ps-item span, html[data-theme="dark"] .ps-item svg { color: #9a9ab0; }
+
+/* ── 飘落花瓣 ── */
+.petal {
+  position: fixed; top: -30px; z-index: 7; pointer-events: none;
+  animation: petalFall linear infinite; opacity: .85;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.08));
+}
+@keyframes petalFall {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); }
+  100% { transform: translateY(110vh) translateX(45px) rotate(340deg); }
+}
