@@ -1,29 +1,29 @@
-/* ═══════════════════════════════════════════════════
-   重启日志 · 2026 主流博客 UI
-   双主题：浅色（纸白杂志感）+ 深色（深夜模式）
-   主题变量全部走 CSS 变量，切换只改 html[data-theme]
-   ═══════════════════════════════════════════════════ */
+﻿/* 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+   閲嶅惎鏃ュ織 路 2026 涓绘祦鍗氬 UI
+   鍙屼富棰橈細娴呰壊锛堢焊鐧芥潅蹇楁劅锛? 娣辫壊锛堟繁澶滄ā寮忥級
+   涓婚鍙橀噺鍏ㄩ儴璧?CSS 鍙橀噺锛屽垏鎹㈠彧鏀?html[data-theme]
+   鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?*/
 
-/* ── 主题变量 ── */
+/* 鈹€鈹€ 涓婚鍙橀噺 鈹€鈹€ */
 :root {
-  --accent: #ff416c;          /* POETIZE 珊瑚红主色 */
-  --accent-2: #ff4b2b;        /* POETIZE 渐变起点 */
-  --accent-3: #ff8a5c;        /* 暖珊瑚 */
-  --accent-4: #c2185b;        /* 深玫红 */
+  --accent: #00838f;          /* POETIZE 娴锋磱闈掍富鑹?*/
+  --accent-2: #4dd0e1;        /* 娴锋按浜潚 */
+  --accent-3: #ff7043;        /* 鐝婄憵姗欏己璋?*/
+  --accent-4: #f48fb1;        /* 妯辫姳绮?*/
 }
 html[data-theme="light"] {
-  --bg: #fff5f7;
-  --bg-soft: #fdeef2;
+  --bg: #f7fbfc;
+  --bg-soft: #e0f7fa;
   --card: rgba(255,255,255,.82);
   --card-solid: #ffffff;
-  --stroke: #f3d9e0;
-  --stroke-strong: #e8c4cd;
+  --stroke: #d7ecee;
+  --stroke-strong: #b9dfe3;
   --text: #27212b;
   --muted: #8a7a82;
   --glass: rgba(255,255,255,.7);
   --shadow: 0 1px 3px rgba(255,65,108,.06);
-  --grid-line: rgba(255,65,108,.05);
-  --mark: #ffd6e0;
+  --grid-line: rgba(0,131,143,.05);
+  --mark: #c8ecee;
   color-scheme: light;
 }
 html[data-theme="dark"] {
@@ -52,10 +52,10 @@ body {
   transition: background .25s, color .25s;
 }
 
-/* ── POETIZE 流动渐变动画背景（亮色：粉→白→淡蓝） ── */
+/* 鈹€鈹€ POETIZE 娴佸姩娓愬彉鍔ㄧ敾鑳屾櫙锛堜寒鑹诧細绮夆啋鐧解啋娣¤摑锛?鈹€鈹€ */
 body::after {
   content: ""; position: fixed; inset: 0; z-index: -2;
-  background: linear-gradient(180deg, #fff5f7 0%, #ffffff 50%, #f0f4ff 100%);
+  background: linear-gradient(180deg, #e0f7fa 0%, #ffffff 50%, #fff0f3 100%);
   background-size: 200% 200%;
   animation: poetizeBG 14s ease infinite;
 }
@@ -68,14 +68,14 @@ html[data-theme="dark"] body::after {
   100% { background-position: 0% 50%; }
 }
 
-/* ── 顶部阅读进度条 ── */
+/* 鈹€鈹€ 椤堕儴闃呰杩涘害鏉?鈹€鈹€ */
 #scroll-progress {
   position: fixed; top: 0; left: 0; height: 3px; width: 0%;
   background: linear-gradient(90deg, var(--accent), #f59e0b);
   z-index: 2000; transition: width .1s linear;
 }
 
-/* ── 鼠标光晕 ── */
+/* 鈹€鈹€ 榧犳爣鍏夋檿 鈹€鈹€ */
 #cursor-glow {
   position: fixed; width: 380px; height: 380px; border-radius: 50%;
   background: radial-gradient(circle, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 70%);
@@ -83,32 +83,32 @@ html[data-theme="dark"] body::after {
   transition: opacity .3s;
 }
 
-/* ── 粒子背景 ── */
+/* 鈹€鈹€ 绮掑瓙鑳屾櫙 鈹€鈹€ */
 #particle-canvas {
   position: fixed; inset: 0; z-index: -2; pointer-events: none; opacity: .8;
 }
 
-/* ── 打字机光标 ── */
+/* 鈹€鈹€ 鎵撳瓧鏈哄厜鏍?鈹€鈹€ */
 .type-cursor {
   display: inline-block; width: 2px; height: 1em; margin-left: 2px;
   background: var(--accent); vertical-align: -0.12em; animation: blink 1s steps(1) infinite;
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-/* ── 逐字浮现 ── */
+/* 鈹€鈹€ 閫愬瓧娴幇 鈹€鈹€ */
 .reveal-word {
   display: inline-block; opacity: 0; transform: translateY(0.5em);
   animation: wordIn .5s cubic-bezier(.2, .7, .3, 1) forwards;
 }
 @keyframes wordIn { to { opacity: 1; transform: none; } }
 
-/* ── 内容块淡入 ── */
+/* 鈹€鈹€ 鍐呭鍧楁贰鍏?鈹€鈹€ */
 .fade-in-block {
   opacity: 0; transform: translateY(18px);
   transition: opacity .6s ease, transform .6s ease;
 }
 .fade-in-block.visible { opacity: 1; transform: none; }
-/* 科技感网格背景 */
+/* 绉戞妧鎰熺綉鏍艰儗鏅?*/
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image:
@@ -121,14 +121,14 @@ body::before {
 button { font-family: inherit; }
 code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 
-/* 阅读进度条 */
+/* 闃呰杩涘害鏉?*/
 .progress-bar {
   position: fixed; top:0; left:0; height:3px; width:0;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   z-index: 200; transition: width .1s linear;
 }
 
-/* ── 顶栏 ── */
+/* 鈹€鈹€ 椤舵爮 鈹€鈹€ */
 .topbar {
   position: sticky; top:0; z-index:100;
   background: var(--glass);
@@ -139,7 +139,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
   max-width: 1080px; margin:0 auto; padding: 12px 22px;
   display: flex; align-items:center; justify-content:space-between;
 }
-/* 品牌区 */
+/* 鍝佺墝鍖?*/
 .tb-brand {
   display: flex; align-items: center; gap: 10px;
   background: none; border: none; cursor: pointer;
@@ -194,13 +194,13 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 .btn-ghost:hover { border-color: var(--accent); }
 .btn-primary:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow: none; }
 
-/* ── 主体 ── */
+/* 鈹€鈹€ 涓讳綋 鈹€鈹€ */
 .main { max-width: 1080px; margin:0 auto; padding: 44px 22px 80px; }
 .view[hidden] { display:none; }
 
 /* Hero */
 .hero { display:grid; grid-template-columns: 1.4fr 1fr; gap: 34px; align-items:center; margin-bottom: 40px; position: relative; overflow: hidden; }
-/* Hero 背景装饰：光晕 + 巨型字母水印 */
+/* Hero 鑳屾櫙瑁呴グ锛氬厜鏅?+ 宸ㄥ瀷瀛楁瘝姘村嵃 */
 .hero-deco {
   position: absolute; inset: 0; pointer-events: none; z-index: 0;
   background:
@@ -226,7 +226,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
   font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
   font-size: 52px; font-weight:700; line-height:1.15; margin-bottom: 14px; letter-spacing:.01em;
 }
-/* 流动渐变文字 */
+/* 娴佸姩娓愬彉鏂囧瓧 */
 .grad-flow {
   background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent));
   background-size: 260% auto;
@@ -257,7 +257,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 }
 .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-/* 工具条 */
+/* 宸ュ叿鏉?*/
 .toolbar {
   display:flex; align-items:center; gap: 10px; flex-wrap:wrap;
   margin-bottom: 22px; padding: 14px;
@@ -289,7 +289,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 }
 .view-toggle:hover { color: var(--accent); border-color: var(--accent); }
 
-/* 列表视图 */
+/* 鍒楄〃瑙嗗浘 */
 .post-grid.list-view { grid-template-columns: 1fr; }
 .post-grid.list-view .post-card:first-child { grid-column: auto; }
 .post-grid.list-view .post-card:first-child .post-cover { height: auto; min-height: 110px; }
@@ -298,7 +298,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 .post-grid.list-view .post-cover { width: 220px; height: auto; min-height: 110px; flex: none; }
 .post-grid.list-view .post-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 
-/* ── Linzy 极简风格 ── */
+/* 鈹€鈹€ Linzy 鏋佺畝椋庢牸 鈹€鈹€ */
 .post-card {
   position: relative;
   transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
@@ -307,9 +307,9 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
-/* 文章日期弱化灰字（Linzy 风格） */
+/* 鏂囩珷鏃ユ湡寮卞寲鐏板瓧锛圠inzy 椋庢牸锛?*/
 .post-meta, .post-date { color: var(--muted); font-size: 12px; letter-spacing: .02em; }
-/* 文章底部作者签名卡（Linzy 标志性设计） */
+/* 鏂囩珷搴曢儴浣滆€呯鍚嶅崱锛圠inzy 鏍囧織鎬ц璁★級 */
 .author-signoff {
   display: flex; align-items: center; gap: 12px; margin-top: 36px; padding: 16px 18px;
   border: 1px solid var(--stroke); border-radius: 12px; background: var(--bg-soft);
@@ -334,11 +334,11 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
   .post-grid.list-view .post-cover { width: 100%; height: 130px; }
 }
 
-/* 加载更多 */
+/* 鍔犺浇鏇村 */
 .load-more-wrap { text-align: center; margin-top: 22px; }
 .load-more-wrap .btn-ghost { padding: 10px 34px; font-size: 13.5px; }
 
-/* 沉浸阅读模式 */
+/* 娌夋蹈闃呰妯″紡 */
 .immersive .topbar, .immersive .footer, .immersive .back-top, .immersive .toc,
 .immersive .progress-bar, .immersive .back-link { display: none !important; }
 .immersive .main { max-width: 1120px; }
@@ -346,11 +346,11 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 .immersive .post-content { font-size: 16.5px; line-height: 1.9; }
 @media (max-width: 700px) { .immersive .post-article { padding: 30px 22px; } }
 
-/* 内容两栏 */
+/* 鍐呭涓ゆ爮 */
 .content-grid { display:grid; grid-template-columns: 2fr 1fr; gap: 26px; align-items:start; }
 .post-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
-/* 文章卡片 */
+/* 鏂囩珷鍗＄墖 */
 .post-card {
   text-align:left; font-family: inherit; color: var(--text); cursor:pointer;
   background: var(--card); border:1px solid var(--stroke); border-radius: 16px;
@@ -363,7 +363,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
   transform: translateY(-4px); border-color: var(--stroke-strong);
   box-shadow: 0 16px 36px color-mix(in srgb, var(--accent) 14%, transparent), 0 4px 10px rgba(0,0,0,.05);
 }
-/* 首篇 featured 大卡：横跨整行 */
+/* 棣栫瘒 featured 澶у崱锛氭í璺ㄦ暣琛?*/
 .post-grid .post-card:first-child { grid-column: 1 / -1; }
 .post-grid .post-card:first-child .post-cover { height: 180px; }
 .post-grid .post-card:first-child .post-title { font-size: 21px; }
@@ -377,7 +377,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 .post-card:hover .post-cover.has-img { background-position: center 75%; }
 .post-cover.has-img::after { content: ""; position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0) 25%, rgba(0,0,0,.62)); }
 .post-cover.has-img .pill { position: relative; z-index: 1; }
-/* 封面大字标题（有图时叠加） */
+/* 灏侀潰澶у瓧鏍囬锛堟湁鍥炬椂鍙犲姞锛?*/
 .cover-inner-title {
   position: relative; z-index: 1;
   font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
@@ -387,7 +387,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .post-grid .post-card:first-child .cover-inner-title { font-size: 20px; }
-/* 写文章时的封面实时预览 */
+/* 鍐欐枃绔犳椂鐨勫皝闈㈠疄鏃堕瑙?*/
 .cover-preview {
   height: 110px; border-radius: 14px; margin-bottom: 16px;
   border: 1px solid var(--stroke);
@@ -426,7 +426,7 @@ code, pre { font-family: ui-monospace, Consolas, "Microsoft YaHei", monospace; }
 .post-meta svg { width: 11px; height: 11px; vertical-align: -1px; margin-right: 3px; color: var(--muted); }
 mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2px; }
 
-/* 全局细节：选区 / 滚动条 / 聚焦环 */
+/* 鍏ㄥ眬缁嗚妭锛氶€夊尯 / 婊氬姩鏉?/ 鑱氱劍鐜?*/
 ::selection { background: rgba(13,148,136,.25); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 6px; }
@@ -435,18 +435,18 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .topbar.scrolled { box-shadow: 0 6px 24px rgba(0,0,0,.07); }
 
-/* 标签独立页 */
+/* 鏍囩鐙珛椤?*/
 .tag-page-head { margin-bottom: 20px; }
 .tag-count { font-size: 13px; color: var(--muted); margin-top: -8px; }
 
-/* 阅读量条形图 */
+/* 闃呰閲忔潯褰㈠浘 */
 .vbar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .vbar-label { width: 190px; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none; }
 .vbar-track { flex: 1; height: 14px; background: var(--bg-soft); border-radius: 7px; overflow: hidden; }
 .vbar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 7px; min-width: 2px; transition: width .6s ease; }
 .vbar-num { width: 44px; text-align: right; font-size: 12px; color: var(--muted); flex: none; }
 
-/* 骨架屏 */
+/* 楠ㄦ灦灞?*/
 .skeleton {
   height: 210px; border-radius: 16px;
   background: linear-gradient(100deg, var(--bg-soft) 40%, var(--card) 50%, var(--bg-soft) 60%);
@@ -454,11 +454,11 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
-/* 空状态 */
+/* 绌虹姸鎬?*/
 .empty-state { text-align:center; padding: 50px 0; color: var(--muted); }
 .empty-state p { margin-bottom: 16px; }
 
-/* ── 侧边栏 ── */
+/* 鈹€鈹€ 渚ц竟鏍?鈹€鈹€ */
 .side { display:flex; flex-direction:column; gap: 14px; position: sticky; top: 96px; }
 .side-card {
   background: var(--card); border:1px solid var(--stroke); border-radius: 14px;
@@ -501,7 +501,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .mini-stats { display:flex; flex-direction:column; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .mini-stats b { color: var(--text); font-weight:600; }
 
-/* ── 文章详情 ── */
+/* 鈹€鈹€ 鏂囩珷璇︽儏 鈹€鈹€ */
 .back-link {
   display:inline-block; font-size: 13.5px; color: var(--muted); cursor:pointer;
   background:none; border:none; padding: 4px 0; margin-bottom: 18px;
@@ -529,7 +529,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
   background: var(--bg-soft); border:1px solid var(--stroke); border-radius: 12px;
   padding: 16px 18px; overflow-x:auto; font-size: 13px; line-height:1.6; margin: 0;
 }
-/* 代码块 + 复制按钮 */
+/* 浠ｇ爜鍧?+ 澶嶅埗鎸夐挳 */
 .code-wrap { position: relative; margin: 18px 0; }
 .code-copy {
   position: absolute; top: 8px; right: 8px;
@@ -538,7 +538,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
   padding: 3px 10px; opacity: .85;
 }
 .code-copy:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
-/* 引用块升级 */
+/* 寮曠敤鍧楀崌绾?*/
 .post-content blockquote {
   border-left: 3px solid var(--accent);
   background: var(--bg-soft);
@@ -554,7 +554,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
   color: var(--accent); opacity: .35;
   font-family: Georgia, serif;
 }
-/* 列表升级 */
+/* 鍒楄〃鍗囩骇 */
 .post-content ul { margin: 14px 0 18px 4px; list-style: none; }
 .post-content ul li { padding-left: 22px; position: relative; margin-bottom: 8px; }
 .post-content ul li::before {
@@ -563,11 +563,11 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
   background: var(--accent); border-radius: 2px;
   transform: rotate(45deg);
 }
-/* 链接 */
+/* 閾炬帴 */
 .post-content a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .15s; }
 .post-content a:hover { border-bottom-color: var(--accent); }
 .post-content strong { font-weight:700; }
-/* 图片灯箱 */
+/* 鍥剧墖鐏 */
 .lightbox {
   position: fixed; inset: 0; z-index: 300;
   background: rgba(0,0,0,.88);
@@ -596,10 +596,10 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 }
 .tool-btn:hover { color: var(--text); border-color: var(--stroke-strong); }
 
-/* 详情页封面图 */
+/* 璇︽儏椤靛皝闈㈠浘 */
 .detail-cover { width: 100%; max-height: 320px; object-fit: cover; border-radius: 14px; border: 1px solid var(--stroke); margin-bottom: 22px; }
 
-/* 文章目录（右侧浮动） */
+/* 鏂囩珷鐩綍锛堝彸渚ф诞鍔級 */
 .toc {
   position: fixed; top: 130px; right: 24px; width: 210px;
   max-height: 60vh; overflow-y: auto;
@@ -618,7 +618,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .toc a.active { color: var(--accent); border-left-color: var(--accent); }
 @media (max-width: 1399px) { .toc { display: none !important; } }
 
-/* 上一篇/下一篇 */
+/* 涓婁竴绡?涓嬩竴绡?*/
 .prevnext { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 30px; }
 .prevnext a {
   display: block; text-decoration: none; color: var(--text);
@@ -630,7 +630,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .prevnext .pn-title { font-size: 13.5px; font-weight: 600; margin-top: 3px; line-height: 1.45; }
 .prevnext .next { text-align: right; }
 
-/* 相关文章 */
+/* 鐩稿叧鏂囩珷 */
 .related { margin-top: 34px; }
 .related-title { font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; }
 .related-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
@@ -644,7 +644,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .related-card .rc-title { font-size: 13px; font-weight: 600; margin-top: 4px; line-height: 1.45; }
 @media (max-width: 700px) { .related-grid { grid-template-columns: 1fr; } }
 
-/* 评论区 */
+/* 璇勮鍖?*/
 .comments { margin-top: 34px; padding-top: 28px; border-top: 1px solid var(--stroke); }
 .comments-title { font-size: 15px; font-weight:700; margin-bottom: 16px; }
 .comments-count { color: var(--muted); font-weight:400; font-size: 12.5px; }
@@ -670,7 +670,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 }
 .comment-form input::placeholder, .comment-form textarea::placeholder { color: var(--muted); }
 
-/* ── 关于页 ── */
+/* 鈹€鈹€ 鍏充簬椤?鈹€鈹€ */
 .about-card { max-width: 760px; margin: 0 auto; font-size: 15.5px; }
 .about-card p { margin-bottom: 16px; color: var(--muted); }
 .about-card .quote {
@@ -679,7 +679,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 }
 .page-title { font-family: Georgia, "Noto Serif SC", serif; font-size: 30px; font-weight:700; margin-bottom: 18px; }
 
-/* ── 管理后台 ── */
+/* 鈹€鈹€ 绠＄悊鍚庡彴 鈹€鈹€ */
 .admin-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap: 14px; margin-bottom: 20px; }
 .admin-head .page-title { margin:0; }
 .admin-tabs { display:flex; gap: 6px; background: var(--card); border:1px solid var(--stroke); border-radius: 12px; padding: 4px; }
@@ -732,7 +732,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .metric-num { font-family: Georgia, serif; font-size: 26px; font-weight:700; color: var(--accent); line-height:1.1; }
 .metric-label { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
 
-/* Toast / 弹窗 */
+/* Toast / 寮圭獥 */
 .toast {
   position: fixed; bottom: 26px; left:50%; transform: translateX(-50%);
   background: var(--text); color: var(--bg); font-size: 13px; border-radius: 999px;
@@ -757,7 +757,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 }
 .modal-actions { display:flex; gap: 10px; justify-content:flex-end; }
 
-/* 回到顶部 */
+/* 鍥炲埌椤堕儴 */
 .back-top {
   position: fixed; right: 22px; bottom: 26px; z-index: 150;
   width: 42px; height:42px; border-radius: 50%;
@@ -773,7 +773,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .ring-fg { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 100.5; stroke-dashoffset: 100.5; transition: stroke-dashoffset .1s linear; }
 .back-top-arrow { position: relative; z-index: 1; }
 
-/* 公告条 */
+/* 鍏憡鏉?*/
 .notice-bar {
   display: flex; align-items: center; gap: 12px;
   background: linear-gradient(90deg, rgba(13,148,136,.12), rgba(217,119,6,.10));
@@ -789,7 +789,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 }
 .notice-close:hover { color: var(--text); background: var(--bg-soft); }
 
-/* 最新评论（侧栏） */
+/* 鏈€鏂拌瘎璁猴紙渚ф爮锛?*/
 .recent-comments { display: flex; flex-direction: column; gap: 10px; }
 .rc-item { font-size: 12.5px; cursor: pointer; line-height: 1.5; }
 .rc-item:hover .rc-text { color: var(--accent); }
@@ -797,12 +797,12 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .rc-item .rc-head b { color: var(--accent); font-weight: 600; }
 .rc-item .rc-text { color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: color .15s; }
 
-/* 滚动渐入 */
+/* 婊氬姩娓愬叆 */
 .reveal { opacity: 0; transform: translateY(18px); transition: opacity .55s ease, transform .55s ease; }
 .reveal.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
 
-/* 鼠标光斑（桌面端） */
+/* 榧犳爣鍏夋枒锛堟闈㈢锛?*/
 .cursor-glow {
   position: fixed; top: 0; left: 0; width: 340px; height: 340px;
   border-radius: 50%; pointer-events: none; z-index: 9999;
@@ -813,7 +813,7 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 body.glow-on .cursor-glow { opacity: 1; }
 @media (hover: none), (max-width: 900px) { .cursor-glow { display: none; } }
 
-/* 打字机光标 */
+/* 鎵撳瓧鏈哄厜鏍?*/
 .typewriter::after {
   content: "|"; margin-left: 2px;
   color: var(--accent);
@@ -821,7 +821,7 @@ body.glow-on .cursor-glow { opacity: 1; }
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-/* 卡片光泽扫过 */
+/* 鍗＄墖鍏夋辰鎵繃 */
 .post-card::before {
   content: ""; position: absolute; top: 0; left: -85%;
   width: 55%; height: 100%;
@@ -832,7 +832,7 @@ body.glow-on .cursor-glow { opacity: 1; }
 }
 .post-card:hover::before { left: 130%; }
 
-/* 评论回复 */
+/* 璇勮鍥炲 */
 .comment-item.reply { margin-left: 26px; }
 .reply-badge { font-size: 10.5px; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 7px; margin-left: 4px; }
 .reply-to { font-size: 11px; color: var(--muted); margin-right: 6px; }
@@ -843,7 +843,7 @@ body.glow-on .cursor-glow { opacity: 1; }
 .comment-reply-btn:hover { color: var(--accent); }
 .replying-hint { font-size: 12px; color: var(--accent); margin-top: -4px; }
 
-/* 打印样式 */
+/* 鎵撳嵃鏍峰紡 */
 @media print {
   .topbar, .side, .toc, .footer, .back-top, .toast, .comments, .prevnext, .related,
   .post-footer, .toolbar, .hero-actions, .notice-bar, .back-link, .progress-bar {
@@ -858,7 +858,7 @@ body.glow-on .cursor-glow { opacity: 1; }
   .post-content pre { white-space: pre-wrap; }
 }
 
-/* 夜跑模式（暖色暗色，护眼） */
+/* 澶滆窇妯″紡锛堟殩鑹叉殫鑹诧紝鎶ょ溂锛?*/
 body.nightrun {
   --bg: #0d0b09;
   --bg-soft: #16130f;
@@ -877,7 +877,7 @@ body.nightrun {
 }
 .nightrun-link:hover { color: var(--accent); border-color: var(--accent); }
 
-/* 时间线 */
+/* 鏃堕棿绾?*/
 .timeline { position: relative; padding-left: 26px; }
 .timeline::before { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, var(--accent), var(--accent-2), transparent); }
 .tl-node { position: relative; margin-bottom: 16px; }
@@ -899,7 +899,7 @@ body.nightrun {
   border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; margin-left: 8px;
 }
 
-/* 打卡格子 */
+/* 鎵撳崱鏍煎瓙 */
 .checkin-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .streak-chip {
   font-size: 13px; color: var(--muted); background: var(--card);
@@ -929,7 +929,7 @@ body.nightrun {
 .ck-cell.l3 { background: var(--accent); }
 .ck-cell.today { outline: 2px solid var(--accent-2); outline-offset: 1px; }
 
-/* 留言簿 */
+/* 鐣欒█绨?*/
 .guestbook-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; max-width: 640px; }
 .guestbook-form input, .guestbook-form textarea {
   font-size: 14px; color: var(--text);
@@ -953,7 +953,7 @@ body.nightrun {
 .gb-del { margin-left: auto; font-size: 11px; color: var(--accent-4); cursor: pointer; background: none; border: none; }
 .gb-content { font-size: 13.5px; line-height: 1.6; }
 
-/* 段落共鸣 */
+/* 娈佃惤鍏遍福 */
 .resonate-row { text-align: right; margin: -6px 0 12px; }
 .resonate-btn {
   font-size: 11px; color: var(--muted); cursor: pointer;
@@ -963,7 +963,7 @@ body.nightrun {
 .resonate-btn:hover, .resonate-btn.on { color: var(--accent); border-color: var(--accent); }
 .resonate-btn.on { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 
-/* 作品集 */
+/* 浣滃搧闆?*/
 .portfolio-hero { margin-bottom: 24px; }
 .portfolio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
 .pf-card.panel { padding: 22px 24px; }
@@ -980,12 +980,12 @@ body.nightrun {
 .pf-tag { font-size: 11px; color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 999px; padding: 2px 10px; }
 @media (max-width: 700px) { .portfolio-grid, .pf-projects { grid-template-columns: 1fr; } }
 
-/* ── 全屏沉浸式 Hero（Linzy 风格） ── */
+/* 鈹€鈹€ 鍏ㄥ睆娌夋蹈寮?Hero锛圠inzy 椋庢牸锛?鈹€鈹€ */
 .immersive-hero {
   position: relative; width: 100vw; height: 100vh; min-height: 520px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  margin-left: calc(50% - 50vw); /* 突破 1080px 容器限制，铺满全屏宽度 */
-  margin-top: -44px; /* 抵消 .main 的 padding-top，紧贴导航栏 */
+  margin-left: calc(50% - 50vw); /* 绐佺牬 1080px 瀹瑰櫒闄愬埗锛岄摵婊″叏灞忓搴?*/
+  margin-top: -44px; /* 鎶垫秷 .main 鐨?padding-top锛岀揣璐村鑸爮 */
   margin-bottom: 0;
 }
 .hero-bg {
@@ -997,7 +997,7 @@ body.nightrun {
   background: linear-gradient(180deg, rgba(40,60,80,.18) 0%, rgba(70,90,110,.22) 50%, rgba(30,45,60,.28) 100%);
   z-index: 1;
 }
-/* Hero 导航栏 */
+/* Hero 瀵艰埅鏍?*/
 .hero-nav {
   position: absolute; top: 0; left: 0; right: 0; z-index: 10;
   display: flex; align-items: center; justify-content: space-between;
@@ -1012,7 +1012,7 @@ body.nightrun {
   cursor: pointer; transition: color .2s;
 }
 .hero-nav-links a:hover { color: #fff; }
-/* Hero 中央文字 */
+/* Hero 涓ぎ鏂囧瓧 */
 .hero-center {
   position: relative; z-index: 2;
   text-align: center;
@@ -1030,7 +1030,7 @@ body.nightrun {
   letter-spacing: .06em;
   text-shadow: 0 1px 6px rgba(0,0,0,.2);
 }
-/* 滚动提示箭头 */
+/* 婊氬姩鎻愮ず绠ご */
 .hero-scroll-hint {
   position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
   z-index: 3; background: none; border: none;
@@ -1044,15 +1044,24 @@ body.nightrun {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50% { transform: translateX(-50%) translateY(8px); }
 }
-/* 主内容区（Hero 下方）：间距交给 .main 统一控制 */
+/* 涓诲唴瀹瑰尯锛圚ero 涓嬫柟锛夛細闂磋窛浜ょ粰 .main 缁熶竴鎺у埗 */
+
+/* 鈹€鈹€ POETIZE 娉㈡氮鍒嗛殧锛圚ero 涓庡唴瀹瑰尯涔嬮棿锛?鈹€鈹€ */
+.hero-wave {
+  position: absolute; bottom: -1px; left: 0; right: 0; z-index: 4;
+  width: 100%; height: 60px; pointer-events: none;
+}
+.hero-wave svg { display: block; width: 100%; height: 100%; }
+.hero-wave path { fill: var(--bg); }
+
 .main-content {
   position: relative; z-index: 5;
-  margin-top: -1px; /* 无缝衔接 */
+  margin-top: -1px; /* 鏃犵紳琛旀帴 */
   background: var(--bg);
   box-shadow: 0 -4px 30px rgba(0,0,0,.08);
-  padding: 44px 0 0; /* 只留顶部呼吸空间，左右/底部沿用 .main 的 padding */
+  padding: 44px 0 0; /* 鍙暀椤堕儴鍛煎惛绌洪棿锛屽乏鍙?搴曢儴娌跨敤 .main 鐨?padding */
 }
-body { overflow-x: hidden; } /* 防止 100vw Hero 撑出横向滚动条 */
+body { overflow-x: hidden; } /* 闃叉 100vw Hero 鎾戝嚭妯悜婊氬姩鏉?*/
 @media (max-width: 700px) {
   .hero-nav { padding: 12px 16px; }
   .hero-nav-links { gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
@@ -1060,12 +1069,12 @@ body { overflow-x: hidden; } /* 防止 100vw Hero 撑出横向滚动条 */
   .immersive-hero { min-height: 420px; }
 }
 
-/* 页脚 */
+/* 椤佃剼 */
 .footer { text-align:center; padding: 26px 20px 44px; border-top: 1px solid var(--stroke); }
 .footer p { font-size: 12px; color: var(--muted); }
 .footer .footer-sub { font-family: Georgia, "Noto Serif SC", serif; font-size: 12.5px; margin-top: 4px; color: var(--stroke-strong); }
 
-/* ── 响应式 ── */
+/* 鈹€鈹€ 鍝嶅簲寮?鈹€鈹€ */
 @media (max-width: 900px) {
   .content-grid { grid-template-columns: 1fr; }
   .hero { grid-template-columns: 1fr; }
