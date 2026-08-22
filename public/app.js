@@ -120,7 +120,9 @@ async function loadPosts() {
   try {
     const { posts, hasMore } = await api('/api/posts?limit=6&offset=0');
     POSTS = posts;
+    window.__posts = posts;
     hasMorePosts = hasMore;
+    updatePfTags();
     document.getElementById('load-more-wrap').hidden = !hasMore;
     // 动态填充筛选下拉框
     const tags = [...new Set(posts.map(p => p.tag).filter(Boolean))];
@@ -767,6 +769,16 @@ function downloadMd() {
 function toggleNightrun() {
   document.body.classList.toggle('nightrun');
   localStorage.setItem('blog-nightrun', document.body.classList.contains('nightrun') ? '1' : '0');
+}
+
+// ── 个人信息卡分类数（全量统计） ──
+async function updatePfTags() {
+  try {
+    const d = await api('/api/posts');
+    const tags = new Set((d.posts || []).map(p => p.tag).filter(Boolean));
+    const el = document.getElementById('pf-tags');
+    if (el) el.textContent = tags.size;
+  } catch (e) {}
 }
 
 // ── 作品集 ──
