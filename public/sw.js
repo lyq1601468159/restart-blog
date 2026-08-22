@@ -1,6 +1,6 @@
-// Service Worker —— 离线缓存（v2，修复旧版缓存滞留问题）
-// 策略：JS/CSS/HTML 网络优先（确保更新即时生效），图片缓存优先（变化少）
-const CACHE = 'restart-v2'; // 版本号升级，旧缓存自动清除
+// Service Worker —— 离线缓存（v3，图片改为网络优先，修复头像/图片不更新的问题）
+// 策略：所有资源网络优先（确保更新即时生效），离线时才用缓存兜底
+const CACHE = 'restart-v3'; // 版本号升级，激活时自动清除旧缓存
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/', '/index.html', '/style.css', '/app.js', '/manifest.json'])));
@@ -8,26 +8,23 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  // 清除旧版本缓存
+  // 清除旧版本缓存（v2 及更早）
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
   self.clients.claim(); // 立即接管所有页面
 });
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // JS / CSS / HTML：永远先尝试网络，确保用户看到最新版；网络失败时用缓存兜底
-  if (url.pathname.match(/\.(css|js|html)$/) || url.pathname === '/') {
-    e.respondWith(
-      fetch(e.request).then(res => {
+  // 只处理同源 GET 请求
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  // 全部资源网络优先：先用网络，成功则更新缓存；网络失败用缓存兜底（离线可用）
+  e.respondWith(
+    fetch(e.request).then(res => {
+      if (res && res.status === 200) {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
-        return res;
-      }).catch(() => caches.match(e.request))
-    );
-    return;
-  }
-  // 图片 / 图标 / 字体：缓存优先（这些不常变，加快加载速度）
-  if (url.pathname.match(/\.(png|jpg|svg|ico|woff2?)$/)) {
-    e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request)));
-  }
+      }
+      return res;
+    }).catch(() => caches.match(e.request))
+  );
 });
