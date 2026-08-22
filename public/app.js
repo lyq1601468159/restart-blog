@@ -363,7 +363,7 @@ async function openPost(id) {
     const isAdmin = true; // 令牌验证已关闭，管理按钮常显
     box.innerHTML =
       '<article class="post-article">' +
-        (post.cover_url ? '<img class="detail-cover" src="' + post.cover_url + '" alt="' + escapeHtml(post.title) + '" onerror="this.remove()">' : '') +
+        (post.cover_url ? '<img class="detail-cover" loading="lazy" src="' + post.cover_url + '" alt="' + escapeHtml(post.title) + '" onerror="this.remove()">' : '') +
         '<div class="post-meta-row">' +
           '<span>' + escapeHtml(post.date) + '</span>' +
           '<span>' + escapeHtml(post.tag || '未分类') + '</span>' +
